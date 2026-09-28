@@ -2,9 +2,11 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { GrSend } from "react-icons/gr";
 
 import { useNavigate, useParams } from "react-router-dom";
+import useExamStore from "../store/ExamStore";
 import useMessageStore from "../store/MessageStore";
 import useStudentStore from "../store/StudentStore";
 import { socket } from "../Utils/socket";
+import { Toaster } from "react-hot-toast";
 
 type LiveMessage = {
     _id: string;
@@ -16,6 +18,7 @@ type LiveMessage = {
 function RoomChat() {
     const navigate = useNavigate();
     const { roomCode } = useParams();
+    const createExam = useExamStore((state) => state.createExam);
     const { messages, getMessage } = useMessageStore();
     const currentUser = useStudentStore((state) => state.currentUser);
 
@@ -27,6 +30,7 @@ function RoomChat() {
     const [isExamModalOpen, setIsExamModalOpen] = useState(false);
     const [examPdf, setExamPdf] = useState<File | null>(null);
     const [uploadError, setUploadError] = useState("");
+    const [isCreatingExam, setIsCreatingExam] = useState(false);
     const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const messagesEnd = useRef<HTMLDivElement | null>(null);
 
@@ -125,10 +129,32 @@ function RoomChat() {
         setNewMessage("");
     };
 
-    const handleStartExam = (event: FormEvent<HTMLFormElement>) => {
+    const handleStartExam = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!examPdf || (!examPdf.type.includes("pdf") && !examPdf.name.toLowerCase().endsWith(".pdf"))) {
             setUploadError("Choose a PDF file to start the exam.");
+            return;
+        }
+
+        const formData = new FormData(event.currentTarget);
+        if (!roomCode) {
+            setUploadError("Room code is missing.");
+            return;
+        }
+
+        setIsCreatingExam(true);
+        const created = await createExam({
+            courseId: String(formData.get("courseId")),
+            roomCode,
+            title: String(formData.get("title")),
+            durationMinutes: Number(formData.get("durationMinutes")),
+            totalMarks: Number(formData.get("totalMarks")),
+            file: examPdf,
+        });
+        setIsCreatingExam(false);
+
+        if (!created) {
+            setUploadError("Exam could not be created. Please try again.");
             return;
         }
 
@@ -151,7 +177,10 @@ function RoomChat() {
                             <span className={`h-2 w-2 rounded-full ${isRoomJoined ? "bg-emerald-600" : socketError ? "bg-rose-600" : "bg-amber-500"}`} />
                             {isRoomJoined ? "Connected" : socketError ? "Connection issue" : "Connecting"}
                         </span>
-                        <button type="button" onClick={() => { setUploadError(""); setExamPdf(null); setIsExamModalOpen(true); }} className="rounded-md bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2">
+                        <button 
+                        type="button" 
+                        onClick={() => { setUploadError(""); setExamPdf(null); setIsExamModalOpen(true); }} 
+                        className="rounded-md bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2">
                             Start exam
                         </button>
                     </div>
@@ -244,11 +273,33 @@ function RoomChat() {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h2 id="exam-upload-title" className="text-xl font-semibold">Start an exam</h2>
-                                <p className="mt-1 text-sm text-slate-600">Choose the PDF you’ll use for this study session.</p>
+                                <p className="mt-1 text-sm text-slate-600">Enter the exam details and choose its PDF.</p>
                             </div>
                             <button type="button" onClick={() => setIsExamModalOpen(false)} aria-label="Close exam dialog" className="rounded-md px-2 py-1 text-2xl leading-none text-slate-500 hover:bg-slate-100 hover:text-slate-900">&times;</button>
                         </div>
                         <form onSubmit={handleStartExam} className="mt-5 space-y-4">
+                            <label htmlFor="exam-course-id" className="block text-sm font-medium text-slate-700">
+                                Course ID
+                                <input id="exam-course-id" name="courseId" type="text" required className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15" />
+                            </label>
+                            <label htmlFor="exam-room-code" className="block text-sm font-medium text-slate-700">
+                                Room code
+                                <input id="exam-room-code" name="roomCode" type="text" value={roomCode ?? ""} readOnly required className="mt-1 block w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-600" />
+                            </label>
+                            <label htmlFor="exam-title" className="block text-sm font-medium text-slate-700">
+                                Exam title
+                                <input id="exam-title" name="title" type="text" required className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15" />
+                            </label>
+                            <div className="grid grid-cols-2 gap-4">
+                                <label htmlFor="exam-duration" className="block text-sm font-medium text-slate-700">
+                                    Duration (minutes)
+                                    <input id="exam-duration" name="durationMinutes" type="number" min="1" required className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15" />
+                                </label>
+                                <label htmlFor="exam-total-marks" className="block text-sm font-medium text-slate-700">
+                                    Total marks
+                                    <input id="exam-total-marks" name="totalMarks" type="number" min="0" required className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15" />
+                                </label>
+                            </div>
                             <label htmlFor="exam-pdf" className="block rounded-md border border-dashed border-slate-300 bg-slate-50 p-6 text-center hover:border-emerald-700">
                                 <span className="block font-medium text-slate-800">{examPdf ? examPdf.name : "Select an exam PDF"}</span>
                                 <span className="mt-1 block text-sm text-slate-500">PDF files only</span>
@@ -257,12 +308,13 @@ function RoomChat() {
                             {uploadError && <p className="text-sm text-rose-700" role="alert">{uploadError}</p>}
                             <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
                                 <button type="button" onClick={() => setIsExamModalOpen(false)} className="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
-                                <button type="submit" className="rounded-md bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">Open exam room</button>
+                                <button type="submit" disabled={isCreatingExam} className="rounded-md bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 disabled:cursor-wait disabled:opacity-60">{isCreatingExam ? "Creating exam..." : "Create exam"}</button>
                             </div>
                         </form>
                     </section>
                 </div>
             )}
+            <Toaster />
         </main>
     );
 }

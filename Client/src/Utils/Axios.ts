@@ -22,6 +22,11 @@ export const messageApi = axios.create({
     withCredentials: true,
 });
 
+export const examApi = axios.create({
+    baseURL: `${API_BASE_URL}/exam`,
+    withCredentials: true,
+});
+
 // export const getApiErrorMessage = (error: unknown, fallback: string) => {
 //     if (axios.isAxiosError<{ message?: string }>(error)) {
 //         return error.response?.data?.message || error.message || fallback
