@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import { examApi } from "../Utils/Axios";
+import useQuestionStore, { type GeneratedQuestion } from "./QuestionStore";
 
 type ExamInput = {
 	courseId: string;
@@ -20,15 +21,36 @@ export type Exam = {
 	totalMarks: number;
 };
 
+type CreateExamResponse = {
+	message: string;
+	exam: Exam;
+	question: {
+		questionText: GeneratedQuestion[] | string;
+	};
+};
+
 type Store = {
 	exam: Exam | null;
-	aiResponse: string | null;
 	createExam: (data: ExamInput) => Promise<boolean>;
+};
+
+const parseGeneratedQuestions = (response: unknown): GeneratedQuestion[] => {
+	let parsedResponse = response;
+	if (typeof parsedResponse === "string") {
+		try {
+			parsedResponse = JSON.parse(parsedResponse) as unknown;
+		} catch {
+			return [];
+		}
+	}
+
+	return Array.isArray(parsedResponse)
+		? (parsedResponse as GeneratedQuestion[])
+		: [];
 };
 
 const useExamStore = create<Store>()((set) => ({
 	exam: null,
-	aiResponse: null,
 
 	createExam: async (data: ExamInput) => {
 		try {
@@ -42,7 +64,10 @@ const useExamStore = create<Store>()((set) => ({
 
 			console.log([...formData.entries()]);
 
-			const response = examApi.post("/createExam", formData);
+			const response = examApi.post<CreateExamResponse>(
+				"/createExam",
+				formData
+			);
 
 			toast.promise(response, {
 				loading: "Creating exam...",
@@ -55,7 +80,12 @@ const useExamStore = create<Store>()((set) => ({
 			});
 
 			const res = await response;
-			set({ exam: res.data.exam, aiResponse: res.data.aiResponse });
+			useQuestionStore
+				.getState()
+				.setQuestions(
+					parseGeneratedQuestions(res.data.question.questionText)
+				);
+			set({ exam: res.data.exam });
 			return true;
 		} catch (error) {
 			console.log(error);

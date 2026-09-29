@@ -31,7 +31,7 @@ const examSchema = new mongoose.Schema(
 			type: Number,
 			required: [true, "Total marks are required"],
 			min: [0, "Total marks cannot be negative"],
-		}
+		},
 	}, {
 	timestamps: true,
 }

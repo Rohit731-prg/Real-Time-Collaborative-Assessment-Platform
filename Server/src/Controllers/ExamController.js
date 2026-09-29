@@ -7,6 +7,7 @@ import { textSplitter } from "../Utils/textSplitter.js";
 import { embbiding } from "../Utils/embidding.js";
 import { pineconeIndex } from "../Config/Pinecone.js";
 import { questionChain } from "../Utils/createQuestion.js";
+import { Question } from "../Models/QuestionSchema.js";
 
 export const createExam = async (req, res) => {
     try {
@@ -18,6 +19,9 @@ export const createExam = async (req, res) => {
         await parser.destroy();
 
         const pdfText = pdfData.text;
+        if (!pdfText?.trim()) {
+            return res.status(400).json({ message: "PDF contains no extractable text" });
+        }
 
         const { courseId, roomCode, title, durationMinutes, totalMarks } = req.body;
         if (!courseId || !roomCode || !title || !durationMinutes || !totalMarks) {
@@ -40,8 +44,15 @@ export const createExam = async (req, res) => {
 
         const document = convertDocument(pdfText, req.user._id, courseId, room._id, exam._id);
         const chunks = await textSplitter(document);
-        const vectors = await embbiding.embedDocuments(chunks.map((chunk) => chunk.pageContent));
-        await pineconeIndex.upsert({ vectors });
+        const embeddings = await embbiding.embedDocuments(chunks.map((chunk) => chunk.pageContent));
+        const records = chunks.map((chunk, index) => ({
+            id: `${exam._id}-${index}`,
+            values: embeddings[index],
+            metadata: Object.fromEntries(
+                Object.entries(chunk.metadata).map(([key, value]) => [key, String(value)])
+            ),
+        }));
+        await pineconeIndex.upsert({ records });
 
         const aiResponse = await questionChain.invoke({
             context: pdfText,
@@ -50,7 +61,17 @@ export const createExam = async (req, res) => {
             difficulty: "medium",
             question: "Generate the examination."
         });
-        return res.status(201).json({ message: "Exam created successfully", exam, aiResponse: aiResponse.content });
+        console.log(aiResponse);
+
+        const newQuestion = new Question({
+            examId: exam._id,
+            courseId,
+            createrId: req.user._id,
+            type: "medium",
+            questionText: JSON.parse(aiResponse.content),
+        })
+        await newQuestion.save();
+        return res.status(201).json({ message: "Exam created successfully", exam, question: newQuestion });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Internal Server Error" });

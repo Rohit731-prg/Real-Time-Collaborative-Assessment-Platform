@@ -1,12 +1,24 @@
 import { ChatPromptTemplate } from "@langchain/core/prompts";
+import { z } from "zod";
 
 import { llm } from "./llm.js";
 
+const examSchema = z.array(
+  z.object({
+    question: z.string(),
+    marks: z.number(),
+    expectedAnswer: z.string(),
+    topic: z.string(),
+    difficulty: z.enum(["easy", "medium", "hard"]),
+  })
+);
+
+const structuredLLM = llm.withStructuredOutput(examSchema);
 
 const createExamPrompt = ChatPromptTemplate.fromMessages([
-    [
-        "system",
-        `Generate a Short Answer Question (SAQ) examination.
+  [
+    "system",
+    `Generate a Short Answer Question (SAQ) examination.
 
 Use ONLY the provided course material.
 
@@ -23,28 +35,16 @@ Rules:
 - Do not invent facts outside the material.
 - Include an expected answer.
 - Include the topic.
-- Include difficulty.
-
-Return ONLY valid JSON.
-
-Format:
-[
-  {
-    "question": "...",
-    "marks": 5,
-    "expectedAnswer": "...",
-    "topic": "...",
-    "difficulty": "medium"
-  }
-]
+- Use the requested difficulty.
 
 Course material:
-{context}`
-    ],
-    [
-        "human",
-        "{question}"
-    ]
+{context}`,
+  ],
+  [
+    "human",
+    "{question}",
+  ],
 ]);
 
-export const questionChain = createExamPrompt.pipe(llm);
+export const questionChain =
+  createExamPrompt.pipe(structuredLLM);
