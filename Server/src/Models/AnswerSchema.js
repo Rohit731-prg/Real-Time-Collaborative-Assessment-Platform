@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { array } from "zod";
 
 const answerSchema = new mongoose.Schema({
     questionId: {
@@ -11,6 +10,11 @@ const answerSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Student",
         required: [true, "User is required"],
+    },
+    roomId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Room",
+        required: [true, "Room is required"],
     },
     answers: {
         type: Array,

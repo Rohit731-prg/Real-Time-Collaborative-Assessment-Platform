@@ -26,10 +26,13 @@ const questionSchema = new mongoose.Schema(
 			required: [true, "Question text is required"],
 			trim: true,
 		},
-	},
-	{
-		timestamps: true,
-	}
+		attempted: {
+			type: Boolean,
+			default: false,
+		}
+	}, {
+	timestamps: true,
+}
 );
 
 questionSchema.index({ examId: 1, order: 1 });

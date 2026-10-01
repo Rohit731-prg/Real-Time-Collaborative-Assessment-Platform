@@ -3,6 +3,8 @@ import { DiscussionMessage } from "../Models/DiscussionMessageSchema.js";
 import { RoomMembership } from "../Models/RoomMembershipSchema.js";
 import { Room } from "../Models/RoomSchema.js";
 import { Student } from "../Models/StudentSchema.js";
+import { Exam } from "../Models/ExamSchema.js";
+import { Question } from "../Models/QuestionSchema.js";
 
 export const socketHandler = async (io) => {
     io.on("connection", async (socket) => {
@@ -33,7 +35,7 @@ export const socketHandler = async (io) => {
                 userId: user._id,
             });
 
-            if (!membership) {
+            if (!membership && !room.creatorId.equals(user._id)) {
                 console.log("MEMBERSHIP NOT FOUND");
                 return socket.emit("error", "You are not a member of this room");
             }
@@ -97,6 +99,47 @@ export const socketHandler = async (io) => {
                 _id: user._id,
                 name: user.name,
             });
+        });
+
+        socket.on("start-exam", async ({ roomCode, examId }, acknowledge) => {
+            try {
+                const room = await Room.findOne({ roomCode });
+                if (!room) {
+                    return acknowledge({ ok: false, message: "Room not found" });
+                }
+
+                const exam = await Exam.findById(examId);
+                if (!exam || !exam.roomId.equals(room._id)) {
+                    return acknowledge({ ok: false, message: "Exam not found in this room" });
+                }
+                if (!exam.createdBy.equals(socket.user._id)) {
+                    return acknowledge({ ok: false, message: "You are not allowed to start this exam" });
+                }
+                if (room.currentExamId && !room.currentExamId.equals(exam._id)) {
+                    return acknowledge({ ok: false, message: "Another exam is already active" });
+                }
+
+                const question = await Question.findOne({ examId: exam._id });
+                if (!question) {
+                    return acknowledge({ ok: false, message: "Exam questions were not found" });
+                }
+
+                room.currentExamId = exam._id;
+                room.status = "exam";
+                await room.save();
+
+                io.to(room.roomCode).emit("exam-started", {
+                    roomCode: room.roomCode,
+                    examId: exam._id.toString(),
+                    exam: exam.toObject(),
+                    question: question.toObject(),
+                    questions: question.questionText,
+                });
+                acknowledge({ ok: true });
+            } catch (error) {
+                console.error("Failed to start exam:", error);
+                acknowledge({ ok: false, message: "The exam could not be started" });
+            }
         });
 
         socket.on("disconnect", async ({ roomCode }) => {

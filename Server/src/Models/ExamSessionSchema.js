@@ -27,10 +27,6 @@ const examSessionSchema = new mongoose.Schema(
 			type: Date,
 			default: null,
 		},
-		startedAt: {
-			type: Date,
-			default: null,
-		},
 		endedAt: {
 			type: Date,
 			default: null,
@@ -49,28 +45,28 @@ const examSessionSchema = new mongoose.Schema(
 			min: [0, "Participant count cannot be negative"],
 			default: 0,
 		},
-		settings: {
-			shuffleQuestions: {
-				type: Boolean,
-				default: false,
-			},
-			shuffleOptions: {
-				type: Boolean,
-				default: false,
-			},
-			showResultImmediately: {
-				type: Boolean,
-				default: false,
-			},
-			showLeaderboard: {
-				type: Boolean,
-				default: false,
-			},
-			allowReview: {
-				type: Boolean,
-				default: true,
-			},
-		},
+		// settings: {
+		// 	shuffleQuestions: {
+		// 		type: Boolean,
+		// 		default: false,
+		// 	},
+		// 	shuffleOptions: {
+		// 		type: Boolean,
+		// 		default: false,
+		// 	},
+		// 	showResultImmediately: {
+		// 		type: Boolean,
+		// 		default: false,
+		// 	},
+		// 	showLeaderboard: {
+		// 		type: Boolean,
+		// 		default: false,
+		// 	},
+		// 	allowReview: {
+		// 		type: Boolean,
+		// 		default: true,
+		// 	},
+		// },
 	},
 	{
 		timestamps: true,

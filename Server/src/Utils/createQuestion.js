@@ -8,6 +8,7 @@ const examSchema = z.array(
     question: z.string(),
     marks: z.number(),
     expectedAnswer: z.string(),
+    userAnswer: z.string().default(""),
     topic: z.string(),
     difficulty: z.enum(["easy", "medium", "hard"]),
   })
@@ -36,6 +37,7 @@ Rules:
 - Include an expected answer.
 - Include the topic.
 - Use the requested difficulty.
+- let userAnswer = ""; - means let it empty, user will fill it later.
 
 Course material:
 {context}`,

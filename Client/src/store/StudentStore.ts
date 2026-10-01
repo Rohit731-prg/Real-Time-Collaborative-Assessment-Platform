@@ -87,7 +87,7 @@ const useStudentStore = create<Store>()(
                     set({
                         currentUser: response?.data?.student,
                     });
-
+                    console.log(response?.data?.student)
                     return true;
                 } catch (error) {
                     console.log(error);

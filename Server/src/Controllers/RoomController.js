@@ -44,19 +44,30 @@ export const joinRoom = async (req, res) => {
             return res.status(400).json({ message: "Room is already in progress" });
         }
 
-        // check room capecity
-        const participantCount = await RoomMembership.countDocuments({ roomCode });
+        const membershipFilter = { roomId: room._id, userId: user._id };
+        const existingMembership = await RoomMembership.findOne(membershipFilter);
+        if (existingMembership) {
+            return res.status(200).json({ room: room.roomCode });
+        }
+
+        const participantCount = await RoomMembership.countDocuments({ roomId: room._id });
         if (participantCount >= room.maxParticipants) {
             return res.status(400).json({ message: "Room is full" });
         };
 
-        // create membership
         const membership = new RoomMembership({
             roomId: room._id,
             userId: user._id,
             role: "participant",
         });
-        await membership.save();
+        try {
+            await membership.save();
+        } catch (error) {
+            if (error.code === 11000 && await RoomMembership.exists(membershipFilter)) {
+                return res.status(200).json({ room: room.roomCode });
+            }
+            throw error;
+        }
 
         return res.status(200).json({ room: room.roomCode });
     } catch (error) {

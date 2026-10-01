@@ -2,11 +2,13 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { GrSend } from "react-icons/gr";
 
 import { useNavigate, useParams } from "react-router-dom";
-import useExamStore from "../store/ExamStore";
+import useExamStore, { type Exam } from "../store/ExamStore";
+import type { GeneratedQuestion } from "../store/QuestionStore";
 import useMessageStore from "../store/MessageStore";
 import useStudentStore from "../store/StudentStore";
 import { socket } from "../Utils/socket";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
+import Overview from "./Overview";
 
 type LiveMessage = {
     _id: string;
@@ -15,13 +17,23 @@ type LiveMessage = {
     createdAt: string;
 };
 
+type ExamStartedEvent = {
+    roomCode: string;
+    examId: string;
+    exam: Exam;
+    question: { _id: string; questionText: GeneratedQuestion[] | string };
+    questions: GeneratedQuestion[] | string;
+};
+
 function RoomChat() {
     const navigate = useNavigate();
     const { roomCode } = useParams();
     const createExam = useExamStore((state) => state.createExam);
+    const loadExam = useExamStore((state) => state.loadExam);
     const { messages, getMessage } = useMessageStore();
     const currentUser = useStudentStore((state) => state.currentUser);
 
+    const [isOverviewOn, setIsOverviewOn] = useState<boolean>(false);
     const [newMessage, setNewMessage] = useState("");
     const [liveMessages, setLiveMessages] = useState<LiveMessage[]>([]);
     const [isRoomJoined, setIsRoomJoined] = useState(false);
@@ -89,12 +101,23 @@ function RoomChat() {
             typingTimeout.current = setTimeout(() => setTypingUser(""), 1800);
         };
 
+        const handleExamStart = (data: ExamStartedEvent) => {
+            if (!data?.examId || !data.roomCode || !data.exam || !data.question?._id) {
+                toast.error("Exam details are missing. Please restart the exam.");
+                return;
+            }
+
+            loadExam(data.exam, data.question._id, data.questions ?? data.question.questionText);
+            navigate(`/examRoom/${data.roomCode}`);
+        };
+
         socket.on("connect", handleConnect);
         socket.on("connect_error", handleConnectError);
         socket.on("room-joined", handleRoomJoined);
         socket.on("error", handleServerError);
         socket.on("received-message", handleReceivedMessage);
         socket.on("user-typing", handleTyping);
+        socket.on("exam-started", handleExamStart);
 
         if (!socket.connected) {
             socket.connect();
@@ -109,9 +132,10 @@ function RoomChat() {
             socket.off("error", handleServerError);
             socket.off("received-message", handleReceivedMessage);
             socket.off("user-typing", handleTyping);
+            socket.off("exam-started", handleExamStart);
             if (typingTimeout.current) clearTimeout(typingTimeout.current);
         };
-    }, [currentUser?._id, roomCode]);
+    }, [currentUser?._id, loadExam, navigate, roomCode]);
 
     const sendMessage = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -158,7 +182,17 @@ function RoomChat() {
             return;
         }
 
-        navigate("/examRoom", { state: { examPdf, roomCode } });
+        const createdExam = useExamStore.getState().exam;
+        if (!createdExam?._id) {
+            setUploadError("Exam details were not returned. Please try again.");
+            return;
+        }
+
+        socket.emit("start-exam", { roomCode, examId: createdExam._id }, (result: { ok: boolean; message?: string }) => {
+            if (!result.ok) {
+                setUploadError(result.message || "The exam could not be started.");
+            }
+        });
     };
 
     return (
@@ -265,6 +299,14 @@ function RoomChat() {
                         </p>
                     </section>
                 </aside>
+            </section>
+
+            <section>
+                {isOverviewOn ? (
+                    <Overview />
+                ) : (
+                    <div></div>
+                )}
             </section>
 
             {isExamModalOpen && (

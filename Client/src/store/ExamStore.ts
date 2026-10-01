@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import { examApi } from "../Utils/Axios";
+import useAnswerStore from "./AnswerStore";
 import useQuestionStore, { type GeneratedQuestion } from "./QuestionStore";
 
 type ExamInput = {
@@ -21,17 +22,44 @@ export type Exam = {
 	totalMarks: number;
 };
 
+export type ExamSubmission = {
+	questionId: string;
+	examId: string;
+	roomCode: String,
+	answer: string[];
+};
+
 type CreateExamResponse = {
 	message: string;
 	exam: Exam;
 	question: {
+		_id: string;
 		questionText: GeneratedQuestion[] | string;
 	};
 };
 
 type Store = {
 	exam: Exam | null;
+	questionId: string | null;
+	loadExam: (exam: Exam, questionId: string, questions: unknown) => void;
+	loadActiveExam: (roomCode: string) => Promise<boolean>;
 	createExam: (data: ExamInput) => Promise<boolean>;
+	submitExam: (data: ExamSubmission) => Promise<boolean>;
+};
+
+type ActiveExamResponse = {
+	exam: Exam;
+	question: {
+		_id: string;
+		questionText: GeneratedQuestion[] | string;
+	};
+	questions: GeneratedQuestion[] | string;
+};
+
+type SubmitExamResponse = {
+	message: string;
+	ai_response_overview?: unknown;
+	overview?: unknown;
 };
 
 const parseGeneratedQuestions = (response: unknown): GeneratedQuestion[] => {
@@ -51,6 +79,25 @@ const parseGeneratedQuestions = (response: unknown): GeneratedQuestion[] => {
 
 const useExamStore = create<Store>()((set) => ({
 	exam: null,
+	questionId: null,
+	loadExam: (exam, questionId, questions) => {
+		useQuestionStore.getState().setQuestions(parseGeneratedQuestions(questions));
+		set({ exam, questionId });
+	},
+	loadActiveExam: async (roomCode) => {
+		try {
+			const response = await examApi.get<ActiveExamResponse>(
+				`/room/${encodeURIComponent(roomCode)}/active`
+			);
+			const { exam, question, questions } = response.data;
+			useQuestionStore.getState().setQuestions(parseGeneratedQuestions(questions ?? question.questionText));
+			set({ exam, questionId: question._id });
+			return true;
+		} catch (error) {
+			console.error("Failed to load active exam:", error);
+			return false;
+		}
+	},
 
 	createExam: async (data: ExamInput) => {
 		try {
@@ -85,7 +132,33 @@ const useExamStore = create<Store>()((set) => ({
 				.setQuestions(
 					parseGeneratedQuestions(res.data.question.questionText)
 				);
-			set({ exam: res.data.exam });
+			set({ exam: res.data.exam, questionId: res.data.question._id });
+			return true;
+		} catch (error) {
+			console.log(error);
+			return false;
+		}
+	},
+
+	submitExam: async (data: ExamSubmission) => {
+		try {
+			const response = examApi.post<SubmitExamResponse>("/submitExam", data);
+
+			toast.promise(response, {
+				loading: "Submitting assessment...",
+				success: (res) => res.data.message || "Assessment submitted successfully",
+				error: (err) =>
+					err.response?.data?.message ||
+					err.message ||
+					"Assessment submission failed",
+			});
+
+			
+
+			const result = await response;
+			useAnswerStore.getState().setAiResponseOverview(
+				result.data.ai_response_overview ?? result.data.overview ?? null
+			);
 			return true;
 		} catch (error) {
 			console.log(error);
