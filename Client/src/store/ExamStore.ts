@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import { examApi } from "../Utils/Axios";
-import useAnswerStore from "./AnswerStore";
+import useAnswerStore, { type ExamSubmissionResult, type QuestionEvaluation } from "./AnswerStore";
 import useQuestionStore, { type GeneratedQuestion } from "./QuestionStore";
 
 type ExamInput = {
@@ -25,7 +25,7 @@ export type Exam = {
 export type ExamSubmission = {
 	questionId: string;
 	examId: string;
-	roomCode: String,
+	roomCode: string;
 	answer: string[];
 };
 
@@ -58,8 +58,12 @@ type ActiveExamResponse = {
 
 type SubmitExamResponse = {
 	message: string;
-	ai_response_overview?: unknown;
-	overview?: unknown;
+	overview: string;
+	results: QuestionEvaluation[];
+	exam: {
+		title: string;
+		totalMarks: number;
+	};
 };
 
 const parseGeneratedQuestions = (response: unknown): GeneratedQuestion[] => {
@@ -156,9 +160,14 @@ const useExamStore = create<Store>()((set) => ({
 			
 
 			const result = await response;
-			useAnswerStore.getState().setAiResponseOverview(
-				result.data.ai_response_overview ?? result.data.overview ?? null
-			);
+			const submissionResult: ExamSubmissionResult = {
+				overview: result.data.overview,
+				results: result.data.results,
+				examTitle: result.data.exam.title,
+				totalMarks: result.data.exam.totalMarks,
+				roomCode: data.roomCode,
+			};
+			useAnswerStore.getState().setSubmissionResult(submissionResult);
 			return true;
 		} catch (error) {
 			console.log(error);

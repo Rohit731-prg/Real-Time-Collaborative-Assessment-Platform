@@ -6,6 +6,11 @@ const answerSchema = new mongoose.Schema({
         ref: "Question",
         required: [true, "Question is required"],
     },
+    examId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Exam",
+        required: [true, "Exam is required"],
+    },
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Student",
@@ -30,6 +35,6 @@ const answerSchema = new mongoose.Schema({
 }
 );
 
-answerSchema.index({ attemptId: 1, questionId: 1 }, { unique: true });
+answerSchema.index({ userId: 1, examId: 1 }, { unique: true });
 
 export const Answer = mongoose.model("Answer", answerSchema);

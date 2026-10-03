@@ -2,27 +2,43 @@ import { create } from "zustand";
 
 export type StudentAnswers = Record<number, string>;
 
+export type QuestionEvaluation = {
+	question: string;
+	correctAnswer: string;
+	studentAnswer: string;
+	marks: number;
+	comment: string;
+};
+
+export type ExamSubmissionResult = {
+	overview: string;
+	results: QuestionEvaluation[];
+	examTitle: string;
+	totalMarks: number;
+	roomCode: string;
+};
+
 type AnswerStore = {
 	answers: StudentAnswers;
-	ai_response_overview: unknown | null;
+	submissionResult: ExamSubmissionResult | null;
 
 	setAnswer: (questionIndex: number, answer: string) => void;
 	setAnswers: (answers: StudentAnswers) => void;
-	setAiResponseOverview: (overview: unknown | null) => void;
+	setSubmissionResult: (result: ExamSubmissionResult | null) => void;
 	clearAnswers: () => void;
 };
 
 const useAnswerStore = create<AnswerStore>()((set) => ({
 	answers: {},
-	ai_response_overview: null,
+	submissionResult: null,
 
 	setAnswer: (questionIndex, answer) =>
 		set((state) => ({
 			answers: { ...state.answers, [questionIndex]: answer },
 		})),
 	setAnswers: (answers) => set({ answers }),
-	setAiResponseOverview: (overview) => set({ ai_response_overview: overview }),
-	clearAnswers: () => set({ answers: {} }),
+	setSubmissionResult: (result) => set({ submissionResult: result }),
+	clearAnswers: () => set({ answers: {}, submissionResult: null }),
 }));
 
 export default useAnswerStore;

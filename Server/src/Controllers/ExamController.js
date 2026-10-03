@@ -11,6 +11,7 @@ import { questionChain } from "../Utils/createQuestion.js";
 import { Question } from "../Models/QuestionSchema.js";
 import { overviewChain, resultChain } from "../Utils/createResult.js";
 import { Answer } from "../Models/AnswerSchema.js";
+import { vecterStore } from "../Utils/vecterStore.js";
 
 export const createExam = async (req, res) => {
     try {
@@ -47,20 +48,23 @@ export const createExam = async (req, res) => {
 
         const document = convertDocument(pdfText, req.user._id, courseId, room._id, exam._id);
         const chunks = await textSplitter(document);
-        const embeddings = await embbiding.embedDocuments(chunks.map((chunk) => chunk.pageContent));
-        const records = chunks.map((chunk, index) => ({
-            id: `${exam._id}-${index}`,
-            values: embeddings[index],
-            metadata: Object.fromEntries(
-                Object.entries(chunk.metadata).map(([key, value]) => [key, String(value)])
-            ),
-        }));
-        await pineconeIndex.upsert({ records });
+        // const embeddings = await embbiding.embedDocuments(chunks.map((chunk) => chunk.pageContent));
+        // const records = chunks.map((chunk, index) => ({
+        //     id: `${exam._id}-${index}`,
+        //     values: embeddings[index],
+        //     metadata: Object.fromEntries(
+        //         Object.entries(chunk.metadata).map(([key, value]) => [key, String(value)])
+        //     ),
+        // }));
+        await vecterStore.addDocuments(chunks);
+
+        const marksPerQuestion = 5;
+        const questionCount = Math.max(1, Math.floor(Number(totalMarks) / marksPerQuestion));
 
         const aiResponse = await questionChain.invoke({
             context: pdfText,
-            questionCount: 10,
-            marksPerQuestion: 5,
+            questionCount,
+            marksPerQuestion,
             difficulty: "medium",
             question: "Generate the examination."
         });
@@ -75,6 +79,18 @@ export const createExam = async (req, res) => {
         })
         await newQuestion.save();
 
+        const newAiChat = new AiChat({
+            userId: req.user._id,
+            questionId: newQuestion._id,
+            examId: exam._id,
+            courseId: courseId,
+            roomId: room._id,
+            message: String(aiResponse),
+            role: "ai",
+        })
+        await newAiChat.save();
+
+        console.log("Question Created: ", aiResponse);
         return res.status(201).json({ message: "Exam created successfully", exam, question: newQuestion });
     } catch (error) {
         console.log(error);
@@ -123,6 +139,7 @@ export const submitExam = async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
+        console.log("Answer from AI Response: ", answer);
         const question = await Question.findById(questionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
@@ -168,12 +185,25 @@ export const submitExam = async (req, res) => {
                 results: newAnswer.answers,
             }),
         });
+        const overviewContent = aiOverView?.content ?? aiOverView;
+        const overview = typeof overviewContent === "string"
+            ? overviewContent
+            : Array.isArray(overviewContent)
+                ? overviewContent.map((part) => typeof part === "string" ? part : part.text ?? "").join("\n")
+                : JSON.stringify(overviewContent) ?? "";
+
+        console.log("Evaluation from AI: ", aiResponse);
+        console.log("Overview from AI: ", aiOverView);
 
         return res.status(201).json({
             message: "Exam submitted successfully",
             question: newQuestion,
-            ai_response_overview: aiOverView,
-            overview: aiOverView,
+            overview,
+            results: aiResponse,
+            exam: {
+                title: exam.title,
+                totalMarks: exam.totalMarks,
+            },
         });
     } catch (error) {
         console.log(error);

@@ -6,7 +6,9 @@ import useExamStore, { type Exam } from "../store/ExamStore";
 import type { GeneratedQuestion } from "../store/QuestionStore";
 import useMessageStore from "../store/MessageStore";
 import useStudentStore from "../store/StudentStore";
+import useAnswerStore from "../store/AnswerStore";
 import { socket } from "../Utils/socket";
+import { roomApi } from "../Utils/Axios";
 import toast, { Toaster } from "react-hot-toast";
 import Overview from "./Overview";
 
@@ -25,6 +27,11 @@ type ExamStartedEvent = {
     questions: GeneratedQuestion[] | string;
 };
 
+type OnlineStudent = {
+    _id: string;
+    name: string;
+};
+
 function RoomChat() {
     const navigate = useNavigate();
     const { roomCode } = useParams();
@@ -32,8 +39,10 @@ function RoomChat() {
     const loadExam = useExamStore((state) => state.loadExam);
     const { messages, getMessage } = useMessageStore();
     const currentUser = useStudentStore((state) => state.currentUser);
+    const submissionResult = useAnswerStore((state) => state.submissionResult);
 
-    const [isOverviewOn, setIsOverviewOn] = useState<boolean>(false);
+    const [roomName, setRoomName] = useState("");
+    const [onlineStudents, setOnlineStudents] = useState<OnlineStudent[]>([]);
     const [newMessage, setNewMessage] = useState("");
     const [liveMessages, setLiveMessages] = useState<LiveMessage[]>([]);
     const [isRoomJoined, setIsRoomJoined] = useState(false);
@@ -47,6 +56,31 @@ function RoomChat() {
     const messagesEnd = useRef<HTMLDivElement | null>(null);
 
     const allMessages = [...messages, ...liveMessages];
+    const hasResult = Boolean(
+        submissionResult &&
+        submissionResult.roomCode.toUpperCase() === roomCode?.toUpperCase()
+    );
+
+    useEffect(() => {
+        if (!roomCode) {
+            setRoomName("");
+            return;
+        }
+
+        let cancelled = false;
+        void roomApi.get<{ room: { name: string } }>(`/${encodeURIComponent(roomCode)}`)
+            .then(({ data }) => {
+                if (!cancelled) setRoomName(data.room.name);
+            })
+            .catch((error: unknown) => {
+                console.error("Failed to load room details:", error);
+                if (!cancelled) setRoomName("");
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [roomCode]);
 
     useEffect(() => {
         if (roomCode) void getMessage(roomCode);
@@ -60,6 +94,7 @@ function RoomChat() {
         const handleConnect = () => {
             console.log("SOCKET CONNECTED:", socket.id);
             setSocketError("");
+            setOnlineStudents([]);
 
             socket.emit("join-room", {
                 roomCode: roomCode
@@ -75,6 +110,10 @@ function RoomChat() {
         const handleRoomJoined = () => {
             setIsRoomJoined(true);
             setSocketError("");
+        };
+
+        const handleOnlineStudents = (students: OnlineStudent[]) => {
+            setOnlineStudents(students);
         };
 
         const handleServerError = (error: string) => {
@@ -107,6 +146,7 @@ function RoomChat() {
                 return;
             }
 
+            useAnswerStore.getState().setSubmissionResult(null);
             loadExam(data.exam, data.question._id, data.questions ?? data.question.questionText);
             navigate(`/examRoom/${data.roomCode}`);
         };
@@ -115,6 +155,7 @@ function RoomChat() {
         socket.on("connect_error", handleConnectError);
         socket.on("room-joined", handleRoomJoined);
         socket.on("error", handleServerError);
+        socket.on("online-students", handleOnlineStudents);
         socket.on("received-message", handleReceivedMessage);
         socket.on("user-typing", handleTyping);
         socket.on("exam-started", handleExamStart);
@@ -130,6 +171,7 @@ function RoomChat() {
             socket.off("connect_error", handleConnectError);
             socket.off("room-joined", handleRoomJoined);
             socket.off("error", handleServerError);
+            socket.off("online-students", handleOnlineStudents);
             socket.off("received-message", handleReceivedMessage);
             socket.off("user-typing", handleTyping);
             socket.off("exam-started", handleExamStart);
@@ -198,31 +240,59 @@ function RoomChat() {
     return (
         <main className="flex h-dvh min-h-0 flex-col overflow-hidden bg-slate-100 text-slate-900">
             <header className="shrink-0 border-b border-slate-200 bg-white">
-                <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-                    <div className="min-w-0">
-                        <button type="button" onClick={() => navigate("/home")} className="mb-1 text-sm font-medium text-emerald-800 hover:text-emerald-950">
-                            &larr; Back to rooms
-                        </button>
-                        <h1 className="truncate text-xl font-semibold">Study room</h1>
-                        <p className="mt-0.5 text-sm text-slate-500">Room code <span className="font-mono font-semibold text-slate-700">{roomCode}</span></p>
+                <div className="mx-auto max-w-7xl px-4 sm:px-6">
+                    <div className="flex items-center justify-between gap-4 py-4">
+                        <div className="min-w-0">
+                            <button type="button" onClick={() => navigate("/home")} className="mb-1 text-sm font-medium text-emerald-800 hover:text-emerald-950">
+                                &larr; Back to rooms
+                            </button>
+                            <h1 className="truncate text-xl font-semibold">{roomName || "Study room"}</h1>
+                            <p className="mt-0.5 text-sm text-slate-500">Room code <span className="font-mono font-semibold text-slate-700">{roomCode}</span></p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3">
+                            <div className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 sm:gap-3 sm:px-3 sm:py-2">
+                                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-900 text-sm font-bold text-white">
+                                    {currentUser?.name?.trim().charAt(0).toUpperCase() || "S"}
+                                </span>
+                                <div className="min-w-0">
+                                    <p className="max-w-28 truncate text-xs font-semibold text-slate-800 sm:max-w-48 sm:text-sm">{currentUser?.name || "Student"}</p>
+                                    <p className="hidden max-w-48 truncate text-xs text-slate-500 sm:block">{currentUser?.email || "Signed in"}</p>
+                                </div>
+                            </div>
+                            {hasResult ? null : (
+                                <button
+                                    type="button"
+                                    onClick={() => { setUploadError(""); setExamPdf(null); setIsExamModalOpen(true); }}
+                                    className="rounded-md bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2"
+                                >
+                                    Start exam
+                                </button>
+                            )}
+                        </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-3">
-                        <span className="hidden items-center gap-2 text-sm text-slate-600 sm:flex" role="status">
-                            <span className={`h-2 w-2 rounded-full ${isRoomJoined ? "bg-emerald-600" : socketError ? "bg-rose-600" : "bg-amber-500"}`} />
-                            {isRoomJoined ? "Connected" : socketError ? "Connection issue" : "Connecting"}
+                    <div className="flex items-center gap-3 overflow-x-auto border-t border-slate-100 py-2.5" aria-live="polite">
+                        <span className="shrink-0 text-xs font-semibold text-slate-500">
+                            Online · {onlineStudents.length}
                         </span>
-                        <button 
-                        type="button" 
-                        onClick={() => { setUploadError(""); setExamPdf(null); setIsExamModalOpen(true); }} 
-                        className="rounded-md bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2">
-                            Start exam
-                        </button>
+                        <div className="flex min-w-0 items-center gap-2">
+                            {onlineStudents.length ? onlineStudents.map((student) => (
+                                <span
+                                    key={student._id}
+                                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-950"
+                                >
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                                    {student._id === currentUser?._id ? `${student.name} (you)` : student.name}
+                                </span>
+                            )) : (
+                                <span className="shrink-0 text-xs text-slate-400">Waiting for students to connect</span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </header>
 
-            <section className="mx-auto grid min-h-0 w-full max-w-6xl flex-1 gap-5 overflow-hidden px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:py-6">
-                <section aria-label="Room discussion" className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <section className={`mx-auto grid min-h-0 w-full max-w-7xl flex-1 gap-5 overflow-hidden px-4 py-4 sm:px-6 lg:py-6 ${hasResult ? "grid-rows-[minmax(14rem,0.8fr)_minmax(0,1.2fr)] lg:grid-cols-[minmax(17rem,0.78fr)_minmax(0,1.5fr)] lg:grid-rows-1" : "lg:grid-cols-[minmax(0,1fr)_260px]"}`}>
+                <section aria-label="Room discussion" className={`flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white ${hasResult ? "rounded-2xl" : ""}`}>
                     <div className="border-b border-slate-200 px-5 py-4">
                         <h2 className="font-semibold">Room discussion</h2>
                         <p className="mt-1 text-sm text-slate-500">Share questions and work through the material together.</p>
@@ -283,7 +353,7 @@ function RoomChat() {
                     </form>
                 </section>
 
-                <aside className="hidden space-y-4 lg:block">
+                {!hasResult && <aside className="hidden space-y-4 lg:block">
                     <section className="rounded-lg border border-slate-200 bg-white p-5">
                         <h2 className="font-semibold">Study session</h2>
                         <p className="mt-2 text-sm leading-6 text-slate-600">Keep your notes nearby and use the discussion to compare approaches with your classmates.</p>
@@ -298,15 +368,8 @@ function RoomChat() {
                             {isRoomJoined ? "You are connected to this room" : socketError || "Joining the room..."}
                         </p>
                     </section>
-                </aside>
-            </section>
-
-            <section>
-                {isOverviewOn ? (
-                    <Overview />
-                ) : (
-                    <div></div>
-                )}
+                </aside>}
+                {hasResult && <Overview />}
             </section>
 
             {isExamModalOpen && (

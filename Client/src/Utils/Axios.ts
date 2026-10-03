@@ -27,6 +27,11 @@ export const examApi = axios.create({
     withCredentials: true,
 });
 
+export const aiApi = axios.create({
+    baseURL: `${API_BASE_URL}/ai`,
+    withCredentials: true,
+});
+
 // export const getApiErrorMessage = (error: unknown, fallback: string) => {
 //     if (axios.isAxiosError<{ message?: string }>(error)) {
 //         return error.response?.data?.message || error.message || fallback

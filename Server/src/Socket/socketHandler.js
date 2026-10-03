@@ -7,6 +7,21 @@ import { Exam } from "../Models/ExamSchema.js";
 import { Question } from "../Models/QuestionSchema.js";
 
 export const socketHandler = async (io) => {
+    const emitOnlineStudents = async (roomCode) => {
+        const roomSockets = await io.in(roomCode).fetchSockets();
+        const studentIds = [...new Set(
+            roomSockets
+                .map((roomSocket) => roomSocket.data.studentId)
+                .filter(Boolean)
+        )];
+        const students = await Student.find({ _id: { $in: studentIds } }).select("_id name");
+
+        io.to(roomCode).emit("online-students", students.map((student) => ({
+            _id: student._id.toString(),
+            name: student.name,
+        })));
+    };
+
     io.on("connection", async (socket) => {
         const user = socket.user;
 
@@ -41,6 +56,7 @@ export const socketHandler = async (io) => {
             }
 
             joinedRoomCode = room.roomCode;
+            socket.data.studentId = user._id.toString();
 
             socket.join(room.roomCode);
 
@@ -50,6 +66,7 @@ export const socketHandler = async (io) => {
             socket.emit("room-joined", {
                 message: "Room joined successfully",
             });
+            await emitOnlineStudents(room.roomCode);
         });
 
         socket.on("send-message", async ({ message, roomCode }) => {
@@ -142,11 +159,10 @@ export const socketHandler = async (io) => {
             }
         });
 
-        socket.on("disconnect", async ({ roomCode }) => {
-            const student = await Student.findById(socket.user._id);
-            io.to(roomCode).emit("user-left", {
-                name: student.name,
-            });
+        socket.on("disconnect", async () => {
+            if (joinedRoomCode) {
+                await emitOnlineStudents(joinedRoomCode);
+            }
         });
     })
 }

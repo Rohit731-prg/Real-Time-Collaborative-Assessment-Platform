@@ -40,9 +40,9 @@ export const joinRoom = async (req, res) => {
         if (room.status === "closed" || room.status === "completed") {
             return res.status(400).json({ message: "Room is closed or completed" });
         }
-        if (room.currentExamId) {
-            return res.status(400).json({ message: "Room is already in progress" });
-        }
+        // if (room.currentExamId) {
+        //     return res.status(400).json({ message: "Room is already in progress" });
+        // }
 
         const membershipFilter = { roomId: room._id, userId: user._id };
         const existingMembership = await RoomMembership.findOne(membershipFilter);
@@ -88,3 +88,28 @@ export const getAllRooms = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 }
+
+export const getRoomDetails = async (req, res) => {
+    try {
+        const room = await Room.findOne({ roomCode: req.params.roomCode.toUpperCase() });
+        if (!room) {
+            return res.status(404).json({ message: "Room not found" });
+        }
+
+        const isCreator = room.creatorId.equals(req.user._id);
+        const isMember = await RoomMembership.exists({ roomId: room._id, userId: req.user._id });
+        if (!isCreator && !isMember) {
+            return res.status(403).json({ message: "You are not a member of this room" });
+        }
+
+        return res.status(200).json({
+            room: {
+                name: room.name,
+                roomCode: room.roomCode,
+            },
+        });
+    } catch (error) {
+        console.error("Failed to get room details:", error);
+        return res.status(500).json({ message: "Failed to get room details" });
+    }
+};

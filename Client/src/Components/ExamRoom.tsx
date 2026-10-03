@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LuArrowLeft,
   LuBookmark,
@@ -30,19 +30,28 @@ function ExamRoom() {
   const [isLoadingExam, setIsLoadingExam] = useState(!exam?._id || !questionId);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const submissionStarted = useRef(false);
+  const autoSubmitStarted = useRef(false);
 
   useEffect(() => {
-    setRemainingSeconds((exam?.durationMinutes ?? 0) * 60);
-  }, [exam?.durationMinutes]);
+    if (!exam?._id) {
+      setRemainingSeconds(null);
+      return;
+    }
+
+    setRemainingSeconds(exam.durationMinutes * 60);
+  }, [exam?._id, exam?.durationMinutes]);
 
   useEffect(() => {
-    if (remainingSeconds <= 0 || isSubmitted) return;
+    if (remainingSeconds === null || remainingSeconds <= 0 || isSubmitted) return;
 
     const timer = window.setInterval(() => {
-      setRemainingSeconds((seconds) => Math.max(0, seconds - 1));
+      setRemainingSeconds((seconds) =>
+        seconds === null ? null : Math.max(0, seconds - 1)
+      );
     }, 1000);
 
     return () => window.clearInterval(timer);
@@ -50,7 +59,10 @@ function ExamRoom() {
 
   const currentQuestion = questions[currentIndex];
   const answeredCount = Object.values(answers).filter((answer) => answer.trim()).length;
-  const goToRoom = () => navigate(roomCode ? `/roomChat/${roomCode}` : "/home");
+  const goToRoom = useCallback(
+    () => navigate(roomCode ? `/roomChat/${roomCode}` : "/home"),
+    [navigate, roomCode]
+  );
 
   useEffect(() => {
     if (exam?._id && questionId) {
@@ -74,12 +86,15 @@ function ExamRoom() {
     };
   }, [exam?._id, loadActiveExam, questionId, roomCode]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
+    if (submissionStarted.current || isSubmitted) return;
+
     if (!exam?._id || !questionId) {
       toast.error("This exam is missing its submission details. Please reopen it.");
       return;
     }
 
+    submissionStarted.current = true;
     setIsSubmitting(true);
     const submitted = await submitExam({
       examId: exam._id,
@@ -89,8 +104,26 @@ function ExamRoom() {
     });
     setIsSubmitting(false);
 
-    if (submitted) setIsSubmitted(true);
-  };
+    if (submitted) {
+      setIsSubmitted(true);
+      goToRoom();
+    } else {
+      submissionStarted.current = false;
+    }
+  }, [answers, exam, goToRoom, isSubmitted, questionId, questions, roomCode, submitExam]);
+
+  useEffect(() => {
+    if (
+      remainingSeconds !== 0 ||
+      !exam?._id ||
+      !questionId ||
+      isSubmitted ||
+      autoSubmitStarted.current
+    ) return;
+
+    autoSubmitStarted.current = true;
+    void handleSubmit();
+  }, [exam?._id, handleSubmit, isSubmitted, questionId, remainingSeconds]);
 
   if (isLoadingExam) {
     return (
@@ -274,7 +307,7 @@ function ExamRoom() {
               <h2 id="time-title" className="text-sm font-medium">Time remaining</h2>
             </div>
             <p className="mt-3 font-mono text-4xl font-semibold tracking-wide text-slate-950">
-              {formatTime(remainingSeconds)}
+              {formatTime(remainingSeconds ?? (exam?.durationMinutes ?? 0) * 60)}
             </p>
             <p className="mt-1 text-xs text-slate-500">Minutes : seconds</p>
           </section>

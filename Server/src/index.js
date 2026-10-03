@@ -14,6 +14,7 @@ import { courseRouter } from "./Routers/CourseRouter.js";
 import { roomRouter } from "./Routers/RoomRouter.js";
 import MessageRouter from "./Routers/MessageRouter.js";
 import examRouter from "./Routers/ExamRouter.js";
+import AiChatRouter from "./Routers/AiChatRouter.js";
 
 const PORT = process.env.PORT || 5000;
 export const app = express()
@@ -29,6 +30,7 @@ app.use("/api/course", courseRouter);
 app.use("/api/room", roomRouter);
 app.use("/api/message", MessageRouter);
 app.use("/api/exam", examRouter);
+app.use("/api/ai", AiChatRouter);
 
 export const server = http.createServer(app);
 
