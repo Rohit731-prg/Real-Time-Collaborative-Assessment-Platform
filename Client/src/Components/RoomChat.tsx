@@ -11,6 +11,7 @@ import { socket } from "../Utils/socket";
 import { roomApi } from "../Utils/Axios";
 import toast, { Toaster } from "react-hot-toast";
 import Overview from "./Overview";
+import useCourseStore from "../store/CourseStore";
 
 type LiveMessage = {
     _id: string;
@@ -38,6 +39,7 @@ function RoomChat() {
     const createExam = useExamStore((state) => state.createExam);
     const loadExam = useExamStore((state) => state.loadExam);
     const { messages, getMessage } = useMessageStore();
+    const { courses, getAllCourse } = useCourseStore();
     const currentUser = useStudentStore((state) => state.currentUser);
     const submissionResult = useAnswerStore((state) => state.submissionResult);
 
@@ -60,6 +62,14 @@ function RoomChat() {
         submissionResult &&
         submissionResult.roomCode.toUpperCase() === roomCode?.toUpperCase()
     );
+
+    useEffect(() => {
+        async function fetchCourses() {
+            await getAllCourse();
+        };
+
+        fetchCourses();
+    }, []);
 
     useEffect(() => {
         if (!roomCode) {
@@ -335,21 +345,21 @@ function RoomChat() {
                         {typingUser ? `${typingUser} is typing...` : " "}
                     </div>
                     <form onSubmit={sendMessage} className="flex items-end gap-3 border-t border-slate-200 p-4 sm:p-5">
-                    <input
-                        aria-label="Write a message"
-                        type="text"
-                        value={newMessage}
-                        placeholder="Write a message..."
-                        disabled={!isRoomJoined}
-                        onChange={(e) => {
-                            if (roomCode) socket.emit("typing", { roomCode });
-                            setNewMessage(e.target.value);
-                        }}
-                        className="min-w-0 flex-1 rounded-md border border-slate-300 px-4 py-3 text-sm outline-none placeholder:text-slate-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 disabled:bg-slate-100"
-                    />
-                    <button type="submit" aria-label="Send message" disabled={!isRoomJoined || !newMessage.trim()} className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-emerald-800 text-white hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300">
-                        <GrSend aria-hidden="true" />
-                    </button>
+                        <input
+                            aria-label="Write a message"
+                            type="text"
+                            value={newMessage}
+                            placeholder="Write a message..."
+                            disabled={!isRoomJoined}
+                            onChange={(e) => {
+                                if (roomCode) socket.emit("typing", { roomCode });
+                                setNewMessage(e.target.value);
+                            }}
+                            className="min-w-0 flex-1 rounded-md border border-slate-300 px-4 py-3 text-sm outline-none placeholder:text-slate-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 disabled:bg-slate-100"
+                        />
+                        <button type="submit" aria-label="Send message" disabled={!isRoomJoined || !newMessage.trim()} className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-emerald-800 text-white hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300">
+                            <GrSend aria-hidden="true" />
+                        </button>
                     </form>
                 </section>
 
@@ -385,7 +395,17 @@ function RoomChat() {
                         <form onSubmit={handleStartExam} className="mt-5 space-y-4">
                             <label htmlFor="exam-course-id" className="block text-sm font-medium text-slate-700">
                                 Course ID
-                                <input id="exam-course-id" name="courseId" type="text" required className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15" />
+                                <select
+                                    id="exam-course-id"
+                                    name="courseId"
+                                    required
+                                    className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+                                >
+                                    <option value="">Select Course</option>
+                                    {courses?.map((course) => (
+                                        <option key={course._id} value={course._id}>{course.name}</option>
+                                    ))}
+                                </select>
                             </label>
                             <label htmlFor="exam-room-code" className="block text-sm font-medium text-slate-700">
                                 Room code

@@ -7,7 +7,7 @@
         "@langchain/google-genai": "^2.3.2",
         "@langchain/pinecone": "^1.0.3",
         "@langchain/textsplitters": "^1.0.2",
-        "@pinecone-database/pinecone": "^9.0.0",
+        "@pinecone-database/pinecone": "^5.0.2",
         "bcryptjs": "^3.0.3",
         "cohere-ai": "^8.1.0",
         "cookie": "^2.0.1",
@@ -71,7 +71,7 @@
 
     "@napi-rs/canvas-win32-x64-msvc": ["@napi-rs/canvas-win32-x64-msvc@0.1.80", "", { "os": "win32", "cpu": "x64" }, "sha512-Z8jPsM6df5V8B1HrCHB05+bDiCxjE9QA//3YrkKIdVDEwn5RKaqOxCJDRJkl48cJbylcrJbW4HxZbTte8juuPg=="],
 
-    "@pinecone-database/pinecone": ["@pinecone-database/pinecone@9.0.0", "", {}, "sha512-2SEZEGbQPJTXWiRKSQJghqe7XjfmMRtLvkCdjPc5o+vxTa4ufgSid8j2wd+uQkX2B+n6h8+82SGGeTLttvGZGA=="],
+    "@pinecone-database/pinecone": ["@pinecone-database/pinecone@5.1.2", "", {}, "sha512-z7737KUA1hXwd508q1+o4bnRxj0NpMmzA2beyaFm7Y+EC2TYLT5ABuYsn/qhiwiEsYp8v1qS596eBhhvgNagig=="],
 
     "@socket.io/component-emitter": ["@socket.io/component-emitter@3.1.2", "", {}, "sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA=="],
 

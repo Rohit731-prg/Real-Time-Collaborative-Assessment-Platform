@@ -24,21 +24,21 @@ const useMessageStore = create<Store>()((set) => ({
 
 	getMessage: async (roomCode: string) => {
 		try {
-			const response = messageApi.post("/get", { roomCode });
+			const response = await messageApi.post("/get", { roomCode });
 
-			toast.promise(response, {
-				loading: "Loading messages...",
-				success: "Messages loaded",
-				error: (err) =>
-					err.response?.data?.message ||
-					err.message ||
-					"Internal Server Error",
-			});
+			// toast.promise(response, {
+			// 	loading: "Loading messages...",
+			// 	success: "Messages loaded",
+			// 	error: (err) =>
+			// 		err.response?.data?.message ||
+			// 		err.message ||
+			// 		"Internal Server Error",
+			// });
 
-			const res = await response;
-			set({ messages: res.data.messages });
+			set({ messages: response.data.messages });
 			return true;
 		} catch (error) {
+			toast.error("Failed to load messages");
 			console.log(error);
 			return false;
 		}

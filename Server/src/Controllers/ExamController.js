@@ -12,6 +12,7 @@ import { Question } from "../Models/QuestionSchema.js";
 import { overviewChain, resultChain } from "../Utils/createResult.js";
 import { Answer } from "../Models/AnswerSchema.js";
 import { vecterStore } from "../Utils/vecterStore.js";
+import { AiChat } from "../Models/AiChatSchema.js";
 
 export const createExam = async (req, res) => {
     try {
@@ -85,7 +86,7 @@ export const createExam = async (req, res) => {
             examId: exam._id,
             courseId: courseId,
             roomId: room._id,
-            message: String(aiResponse),
+            Message: String(aiResponse),
             role: "ai",
         })
         await newAiChat.save();

@@ -32,9 +32,11 @@ const answerSchema = new mongoose.Schema({
     },
 }, {
     timestamps: true,
-}
-);
+});
 
-answerSchema.index({ userId: 1, examId: 1 }, { unique: true });
+answerSchema.index(
+    { userId: 1, examId: 1, questionId: 1 },
+    { unique: true }
+);
 
 export const Answer = mongoose.model("Answer", answerSchema);
