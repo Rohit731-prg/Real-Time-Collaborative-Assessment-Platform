@@ -1,15 +1,16 @@
 import { useState, type FormEvent } from "react";
 import toast from "react-hot-toast";
 import useStudentStore from "../../store/StudentStore";
+import OtpVerify from "./OtpVerify";
 
 function Signup() {
     const { signUp } = useStudentStore();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showOtp, setShowOtp] = useState(false);
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-
         setIsSubmitting(true);
 
         const formData = new FormData(event.currentTarget);
@@ -39,9 +40,14 @@ function Signup() {
         setIsSubmitting(false);
 
         if (success) {
-            event.currentTarget.reset();
+            console.log(success);
+            setShowOtp(true);
         }
     };
+
+    if (showOtp) {
+        return <OtpVerify setShowOtp={setShowOtp} />;
+    }
 
     return (
         <form

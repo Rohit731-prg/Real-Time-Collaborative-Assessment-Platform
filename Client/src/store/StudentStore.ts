@@ -22,16 +22,19 @@ type SignupIn = {
 };
 
 type Store = {
+    email: String | null
     currentUser: StudentProfile | null;
 
     signUp: (data: SignupIn) => Promise<boolean>;
+    verifyOtp: (otp: string) => Promise<boolean>;
     login: (email: string, password: string) => Promise<boolean>;
     logout: () => void;
 };
 
 const useStudentStore = create<Store>()(
     persist(
-        (set) => ({
+        (set, get) => ({
+            email: null,
             currentUser: null,
 
             signUp: async (data: SignupIn) => {
@@ -49,11 +52,47 @@ const useStudentStore = create<Store>()(
                     });
 
                     const response = await res;
+                    console.log(response);
+
+                    set({
+                        email: response?.data?.email,
+                    });
+
+                    return true;
+                } catch (error) {
+                    console.log(error);
+                    return false;
+                }
+            },
+
+            verifyOtp: async (otp: string) => {
+                try {
+                    if (!get().email) {
+                        toast.error("Email not found!");
+                        return false;
+                    }
+
+                    const res = api.post("/verify-otp", {
+                        email: String(get().email),
+                        otp,
+                    });
+
+                    toast.promise(res, {
+                        loading: "Verifying...",
+                        success: (res) =>
+                            res.data.message || "Verification successful",
+                        error: (err) =>
+                            err.response?.data?.message ||
+                            err.message ||
+                            "Internal Server Error",
+                    });
+
+                    const response = await res;
 
                     console.log(response);
 
                     set({
-                        currentUser: response?.data?.student,
+                        email: response?.data?.student.email,
                     });
 
                     return true;

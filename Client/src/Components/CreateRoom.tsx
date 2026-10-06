@@ -30,6 +30,7 @@ function CreateRoom({ onClose }: CreateRoomProps) {
         const code = await createRoom(roomDetails);
         if (code) {
             setCode(String(code));
+            onClose();
         }
     };
 
@@ -61,7 +62,7 @@ function CreateRoom({ onClose }: CreateRoomProps) {
                 <div className="mb-8 pr-8">
                     <h1 className="text-3xl font-bold text-slate-900">
                         <span id="create-room-title">
-                        Create Room
+                            Create Room
                         </span>
                     </h1>
 

@@ -16,6 +16,7 @@ export const signup = async (req, res) => {
     }
 
     const hashedPassword = await createHashedPassword(password);
+    const otp = Math.floor(1000 + Math.random() * 9000);
 
     const newStudent = new Student({
       name,
@@ -24,16 +25,14 @@ export const signup = async (req, res) => {
       university,
       department,
       semester,
+      otp: otp
     });
 
     await newStudent.save();
 
-    const studentData = newStudent.toObject();
-    delete studentData.password;
-
     return res.status(201).json({
-      message: "Student registered successfully",
-      student: studentData,
+      message: "Student registered successfully please verify your email",
+      email: newStudent.email,
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -66,6 +65,8 @@ export const login = async (req, res) => {
 
     const studentData = student.toObject();
     delete studentData.password;
+    student.otp = null;
+    delete student.otp;
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -78,6 +79,113 @@ export const login = async (req, res) => {
       message: "Login successful",
       student: studentData,
     });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+
+export const optVerification = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and otp are required" });
+    }
+
+    const student = await Student.findOne({ email });
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    if (student.otp !== otp) {
+      await Student.findByIdAndDelete(student._id);
+      return res.status(401).json({ message: "Invalid otp" });
+    }
+
+    student.isActive = true;
+    student.otp = null;
+    await student.save();
+
+    const studentData = student.toObject();
+    delete studentData.password;
+
+    return res.status(200).json({
+      message: "Opt verification successful",
+      student: studentData,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+export const forgotPasswordGetEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const student = await Student.findOne({ email });
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const otp = Math.floor(1000 + Math.random() * 9000);
+    student.otp = otp;
+    await student.save();
+
+    const studentData = student.toObject();
+    delete studentData.password;
+
+    return res.status(200).json({
+      message: "Otp sent successfully",
+      student: studentData,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+}
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, password, otp } = req.body;
+
+    if (!email || !password || !otp) {
+      return res.status(400).json({ message: "Email, password and otp are required" });
+    }
+
+    const student = await Student.findOne({ email });
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    if (student.otp !== otp) {
+      return res.status(401).json({ message: "Invalid otp" });
+    }
+
+    const hashedPassword = await createHashedPassword(password);
+    student.password = hashedPassword;
+    student.otp = null;
+    await student.save();
+
+    const studentData = student.toObject();
+    delete studentData.password;
+
+    return res.status(200).json({
+      message: "Password reset successful",
+      student: studentData,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+}
+
+export const logout = async (req, res) => {
+  try {
+    res.clearCookie("token");
+    return res.status(200).json({ message: "Logout successful" });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

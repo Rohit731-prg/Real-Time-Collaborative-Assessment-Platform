@@ -35,6 +35,10 @@ const studentSchema = new mongoose.Schema(
       required: [true, "Semester is required"],
       min: [1, "Semester must be at least 1"],
     },
+    otp: {
+      type: String,
+      default: null,
+    },
     isVerified: {
       type: Boolean,
       default: false,
