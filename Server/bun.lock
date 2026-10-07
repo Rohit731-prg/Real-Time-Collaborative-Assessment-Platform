@@ -19,6 +19,7 @@
         "langchain": "^1.5.14",
         "mongoose": "^9.10.2",
         "multer": "^2.4.0",
+        "nodemailer": "^10.0.15",
         "nodemon": "^3.1.14",
         "pdf-parse": "^2.4.5",
         "socket.io": "^4.8.4",
@@ -304,6 +305,8 @@
     "mustache": ["mustache@4.2.0", "", { "bin": { "mustache": "bin/mustache" } }, "sha512-71ippSywq5Yb7/tVYyGbkBggbU8H3u5Rz56fH60jGFgr8uHwxs+aSKeqmluIVzM0m0kB7xQjKS6qPfd0b2ZoqQ=="],
 
     "negotiator": ["negotiator@1.1.0", "", { "dependencies": { "content-type": "^2.1.0" } }, "sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg=="],
+
+    "nodemailer": ["nodemailer@10.0.15", "", {}, "sha512-EUqp5PhtcsYXs9Fq/lS7s/8zlTrnBqmzZWzFFROrNikMiz+om/YRKMwqN907t+0A1KKyT8jd39CBUbFZmaZmcA=="],
 
     "nodemon": ["nodemon@3.1.14", "", { "dependencies": { "chokidar": "^3.5.2", "debug": "^4", "ignore-by-default": "^1.0.1", "minimatch": "^10.2.1", "pstree.remy": "^1.1.8", "semver": "^7.5.3", "simple-update-notifier": "^2.0.0", "supports-color": "^5.5.0", "touch": "^3.1.0", "undefsafe": "^2.0.5" }, "bin": { "nodemon": "bin/nodemon.js" } }, "sha512-jakjZi93UtB3jHMWsXL68FXSAosbLfY0In5gtKq3niLSkrWznrVBzXFNOEMJUfc9+Ke7SHWoAZsiMkNP3vq6Jw=="],
 

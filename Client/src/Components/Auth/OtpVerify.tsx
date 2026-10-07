@@ -97,4 +97,4 @@ function OtpVerify({ setShowOtp }: OtpVerifyProps) {
     );
 }
 
-export default OtpVerify;
+export default OtpVerify;

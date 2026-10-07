@@ -45,9 +45,11 @@ export const getAiChat = async (req, res) => {
 export const createAiChatResponse = async (req, res) => {
     try {
         const { questionId, examId, courseId, roomId, query, answer } = req.body;
-        if (!questionId || !examId || !courseId || !roomId || !query?.trim() || !answer) {
+        if (!questionId || !examId || !courseId || !roomId || !query?.trim()) {
             return res.status(400).json({ message: "Assessment details and a question are required." });
         }
+
+        const answerText = answer || "Assessment preparation and discussion.";
 
         const chatFilter = getChatFilter({
             questionId,
@@ -65,7 +67,7 @@ export const createAiChatResponse = async (req, res) => {
         })).reverse();
 
         if (history.length === 0) {
-            history.push({ role: "ai", content: answer });
+            history.push({ role: "ai", content: answerText });
         }
 
         const standaloneQuestion = await rephraseQuestion(history, query.trim());
@@ -86,7 +88,7 @@ export const createAiChatResponse = async (req, res) => {
 
         const aiResponse = await llm.invoke([
             new SystemMessage(
-                `You are a helpful assessment tutor. Answer the student's question using the assessment context below. Explain concepts clearly for a student and do not invent information.\n\nAssessment context:\n${context || answer}`
+                `You are a helpful assessment tutor. Answer the student's question using the assessment context below. Explain concepts clearly for a student and do not invent information.\n\nAssessment context:\n${context || answerText}`
             ),
             ...history.map((message) => message.role === "ai"
                 ? new AIMessage(message.content)

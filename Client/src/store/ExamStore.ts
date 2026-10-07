@@ -40,11 +40,15 @@ type CreateExamResponse = {
 
 type Store = {
 	exam: Exam | null;
+	exams: any[];
 	questionId: string | null;
+
 	loadExam: (exam: Exam, questionId: string, questions: unknown) => void;
 	loadActiveExam: (roomCode: string) => Promise<boolean>;
 	createExam: (data: ExamInput) => Promise<boolean>;
 	submitExam: (data: ExamSubmission) => Promise<boolean>;
+
+	getAllExams: (roomCode: string) => Promise<boolean>;
 };
 
 type ActiveExamResponse = {
@@ -83,6 +87,7 @@ const parseGeneratedQuestions = (response: unknown): GeneratedQuestion[] => {
 
 const useExamStore = create<Store>()((set) => ({
 	exam: null,
+	exams: [],
 	questionId: null,
 	loadExam: (exam, questionId, questions) => {
 		useQuestionStore.getState().setQuestions(parseGeneratedQuestions(questions));
@@ -157,7 +162,7 @@ const useExamStore = create<Store>()((set) => ({
 					"Assessment submission failed",
 			});
 
-			
+
 
 			const result = await response;
 			const submissionResult: ExamSubmissionResult = {
@@ -174,6 +179,19 @@ const useExamStore = create<Store>()((set) => ({
 			return false;
 		}
 	},
+
+	getAllExams: async (roomCode: string) => {
+		try {
+			const response = await examApi.post("/get-all-exams", {
+				roomCode
+			});
+			set({ exams: response.data.exam });
+			return true;
+		} catch (error) {
+			console.log({ error });
+			return false;
+		}
+	}
 }));
 
 export default useExamStore;

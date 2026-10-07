@@ -28,6 +28,8 @@ type Store = {
     signUp: (data: SignupIn) => Promise<boolean>;
     verifyOtp: (otp: string) => Promise<boolean>;
     login: (email: string, password: string) => Promise<boolean>;
+    forgotPassword: (email: string) => Promise<boolean>;
+    resetPassword: (email: string, otp: string, password: string) => Promise<boolean>;
     logout: () => void;
 };
 
@@ -134,10 +136,91 @@ const useStudentStore = create<Store>()(
                 }
             },
 
-            logout: () => {
-                set({
-                    currentUser: null,
-                });
+            forgotPassword: async (email: string) => {
+                try {
+                    const res = api.post("/forgot-password", {
+                        email: email.trim().toLowerCase(),
+                    });
+
+                    toast.promise(res, {
+                        loading: "Sending verification code...",
+                        success: (res) =>
+                            res.data.message || "OTP sent successfully",
+                        error: (err) =>
+                            err.response?.data?.message ||
+                            err.message ||
+                            "Internal Server Error",
+                    });
+
+                    const response = await res;
+                    console.log(response);
+
+                    set({
+                        email: email.trim().toLowerCase(),
+                    });
+
+                    return true;
+                } catch (error) {
+                    console.log(error);
+                    return false;
+                }
+            },
+
+            resetPassword: async (email: string, otp: string, password: string) => {
+                try {
+                    const res = api.post("/reset-password", {
+                        email: email.trim().toLowerCase(),
+                        otp: String(otp).trim(),
+                        password,
+                    });
+
+                    toast.promise(res, {
+                        loading: "Resetting password...",
+                        success: (res) =>
+                            res.data.message || "Password reset successful",
+                        error: (err) =>
+                            err.response?.data?.message ||
+                            err.message ||
+                            "Internal Server Error",
+                    });
+
+                    const response = await res;
+                    console.log(response);
+
+                    return true;
+                } catch (error) {
+                    console.log(error);
+                    return false;
+                }
+            },
+
+            logout: async () => {
+                try {
+                    const res = api.post("/logout");
+
+                    toast.promise(res, {
+                        loading: "Logging out...",
+                        success: (res) =>
+                            res.data.message || "Logout successful",
+                        error: (err) =>
+                            err.response?.data?.message ||
+                            err.message ||
+                            "Internal Server Error",
+                    });
+
+                    const response = await res;
+                    console.log(response);
+
+                    set({
+                        currentUser: null,
+                        email: null,
+                    });
+
+                    return true;
+                } catch (error) {
+                    console.log(error);
+                    return false;
+                }
             },
         }),
         {

@@ -1,5 +1,6 @@
 import { Student } from "../Models/StudentSchema.js";
 import { createToken } from "../Utils/jwt_token.js";
+import { sendEmail } from "../Utils/nodeMailer.js";
 import { createHashedPassword, comparePassword } from "../Utils/password.js";
 
 export const signup = async (req, res) => {
@@ -27,8 +28,9 @@ export const signup = async (req, res) => {
       semester,
       otp: otp
     });
-
     await newStudent.save();
+
+    await sendEmail(email, otp);
 
     return res.status(201).json({
       message: "Student registered successfully please verify your email",
@@ -139,6 +141,8 @@ export const forgotPasswordGetEmail = async (req, res) => {
     const studentData = student.toObject();
     delete studentData.password;
 
+    await sendEmail(studentData.email, otp);
+
     return res.status(200).json({
       message: "Otp sent successfully",
       student: studentData,
@@ -161,7 +165,7 @@ export const resetPassword = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    if (student.otp !== otp) {
+    if (String(student.otp) !== String(otp)) {
       return res.status(401).json({ message: "Invalid otp" });
     }
 

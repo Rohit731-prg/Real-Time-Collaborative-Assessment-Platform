@@ -31,15 +31,18 @@ type Room = {
 };
 
 type Store = {
-    rooms: Room[]
+    rooms: Room[];
+    joinedRooms: Room[];
 
     createRoom: (data: RoomSignUp) => Promise<boolean | String>;
     joinRoom: (roomcode: string) => Promise<boolean>;
     getRoom: () => Promise<void>;
+    getAllJoinedRoom: () => Promise<void>;
 };
 
 const useRoomStore = create<Store>()((set) => ({
     rooms: [],
+    joinedRooms: [],
 
     createRoom: async (data: RoomSignUp) => {
         try {
@@ -99,6 +102,16 @@ const useRoomStore = create<Store>()((set) => ({
             set({ rooms: response.data.rooms });
         } catch (error) {
             console.log(error);
+        }
+    },
+
+    getAllJoinedRoom: async () => {
+        try {
+            const response = await roomApi.get("/get-all-join-room");
+            set({ joinedRooms: response.data.rooms });
+        } catch (error) {
+            toast.error("Failed to fetch joined rooms");
+            console.log({ error });
         }
     }
 }));

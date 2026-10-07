@@ -5,8 +5,8 @@ import { Room } from "../Models/RoomSchema.js";
 import { RoomMembership } from "../Models/RoomMembershipSchema.js";
 import { convertDocument } from "../Utils/Document.js";
 import { textSplitter } from "../Utils/textSplitter.js";
-import { embbiding } from "../Utils/embidding.js";
-import { pineconeIndex } from "../Config/Pinecone.js";
+// import { embbiding } from "../Utils/embidding.js";
+// import { pineconeIndex } from "../Config/Pinecone.js";
 import { questionChain } from "../Utils/createQuestion.js";
 import { Question } from "../Models/QuestionSchema.js";
 import { overviewChain, resultChain } from "../Utils/createResult.js";
@@ -49,14 +49,6 @@ export const createExam = async (req, res) => {
 
         const document = convertDocument(pdfText, req.user._id, courseId, room._id, exam._id);
         const chunks = await textSplitter(document);
-        // const embeddings = await embbiding.embedDocuments(chunks.map((chunk) => chunk.pageContent));
-        // const records = chunks.map((chunk, index) => ({
-        //     id: `${exam._id}-${index}`,
-        //     values: embeddings[index],
-        //     metadata: Object.fromEntries(
-        //         Object.entries(chunk.metadata).map(([key, value]) => [key, String(value)])
-        //     ),
-        // }));
         await vecterStore.addDocuments(chunks);
 
         const marksPerQuestion = 5;
@@ -212,29 +204,20 @@ export const submitExam = async (req, res) => {
     }
 };
 
-// export const getOverViewOnResult = async (req, res) => {
-//     try {
-//         const id = req.body;
-//         if (!id) {
-//             return res.status(400).json({ message: "Id is required" });
-//         }
-//         const answer = Answer.findById(req.params.answerId);
-//         if (!answer) {
-//             return res.status(404).json({ message: "Answer not found" });
-//         }
+export const getAllExamInfo = async (req, res) => {
+    try {
+        const { roomCode } = req.body;
+        if (!roomCode) return res.status(400).json({ message: "Room code is required" });
 
-//         const aiResponse = await overviewChain.invoke({
-//             examQuestions: JSON.stringify({
-//                 results: answer.answers,
-//             }),
-//         });
+        const room = await Room.findOne({ roomCode: roomCode.toUpperCase() });
+        if (!room) return res.status(404).json({ message: "Room not found" });
 
-//         return res.status(200).json({
-//             message: "Answer fetched successfully",
-//             answer: aiResponse,
-//         });
-//     } catch (error) {
-//         console.log(error);
-//         return res.status(500).json({ message: "Internal Server Error" });
-//     }
-// }
+        const exams = await Exam.find({ roomId: room._id }).sort({ createdAt: -1 });
+        if (!exams) return res.status(404).json({ message: "Exam not found" });
+
+        return res.status(200).json({ exam: exams });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}

@@ -13,7 +13,6 @@ export type AiChatContext = {
     examId: string;
     courseId: string;
     roomId: string;
-    answer: string;
 };
 
 type ApiMessage = {

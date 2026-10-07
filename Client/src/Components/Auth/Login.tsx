@@ -49,6 +49,14 @@ const Login = () => {
                     className="w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#47735f] focus:ring-2 focus:ring-[#47735f]/20"
                 />
             </div>
+
+            <div className='flex items-center justify-between'>
+                <p
+                    onClick={() => navigate("/reset-password")}
+                    className='font-medium text-red-500 underline cursor-pointer'>Forget Password ?
+                </p>
+            </div>
+
             <button type="submit" disabled={isSubmitting} className="w-full rounded-md bg-[#315d4a] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#244b3b] focus:outline-none focus:ring-2 focus:ring-[#47735f] focus:ring-offset-2 disabled:cursor-wait disabled:opacity-70">
                 {isSubmitting ? 'Signing in...' : 'Log in to your account'}
             </button>

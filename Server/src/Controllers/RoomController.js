@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { RoomMembership } from "../Models/RoomMembershipSchema.js";
 import { Room } from "../Models/RoomSchema.js";
 
@@ -111,5 +112,97 @@ export const getRoomDetails = async (req, res) => {
     } catch (error) {
         console.error("Failed to get room details:", error);
         return res.status(500).json({ message: "Failed to get room details" });
+    }
+};
+
+export const getAllJoinedRooms = async (req, res) => {
+    console.log("api called...!");
+    try {
+        const userId = req.user._id;
+
+        const rooms = await RoomMembership.aggregate([
+            // 1. Find memberships belonging to current user
+            {
+                $match: {
+                    userId: new mongoose.Types.ObjectId(userId)
+                }
+            },
+
+            // 2. Get the actual Room
+            {
+                $lookup: {
+                    from: "rooms",
+                    localField: "roomId",
+                    foreignField: "_id",
+                    as: "room"
+                }
+            },
+
+            // 3. Convert room array into object
+            {
+                $unwind: "$room"
+            },
+
+            // 4. Remove rooms created by the current user
+            {
+                $match: {
+                    "room.creatorId": {
+                        $ne: new mongoose.Types.ObjectId(userId)
+                    }
+                }
+            },
+
+            // 5. Get creator information
+            {
+                $lookup: {
+                    from: "students",
+                    localField: "room.creatorId",
+                    foreignField: "_id",
+                    as: "creator"
+                }
+            },
+
+            {
+                $unwind: {
+                    path: "$creator",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+
+            // 6. Return only what frontend needs
+            {
+                $project: {
+                    _id: "$room._id",
+                    name: "$room.name",
+                    roomCode: "$room.roomCode",
+                    status: "$room.status",
+                    description: "$room.description",
+                    maxParticipants: "$room.maxParticipants",
+                    creatorId: "$room.creatorId",
+                    creator: {
+                        name: "$creator.name",
+                        email: "$creator.email",
+                        avatar: "$creator.avatar"
+                    }
+                }
+            },
+
+            // 7. Latest joined rooms first
+            {
+                $sort: {
+                    _id: -1
+                }
+            }
+        ]);
+
+        console.log(rooms);
+        return res.status(200).json({ rooms });
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+            message: error.message
+        });
     }
 };
