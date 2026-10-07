@@ -1,7 +1,7 @@
 import { Student } from "../Models/StudentSchema.js";
 import { createToken } from "../Utils/jwt_token.js";
-import { sendEmail } from "../Utils/nodeMailer.js";
 import { createHashedPassword, comparePassword } from "../Utils/password.js";
+import { sendEmail } from "../Utils/resend.js";
 
 export const signup = async (req, res) => {
   const { name, email, password, university, department, semester } = req.body;
@@ -28,6 +28,7 @@ export const signup = async (req, res) => {
       semester,
       otp: otp
     });
+    // await sendEmail(email, otp);
     await sendEmail(email, otp);
     await newStudent.save();
 
