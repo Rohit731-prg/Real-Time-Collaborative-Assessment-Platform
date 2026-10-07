@@ -64,7 +64,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    if (!student.isActive) {
+    if (!student.isVerified) {
       return res.status(403).json({ message: "Account is inactive." });
     }
 
