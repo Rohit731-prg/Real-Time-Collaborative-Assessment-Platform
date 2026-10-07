@@ -28,9 +28,9 @@ export const signup = async (req, res) => {
       semester,
       otp: otp
     });
+    await sendEmail(email, otp);
     await newStudent.save();
 
-    await sendEmail(email, otp);
 
     return res.status(201).json({
       message: "Student registered successfully please verify your email",
