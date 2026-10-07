@@ -34,7 +34,7 @@ export const sendEmail = async (to, otp) => {
         });
 
         // Send Mail
-        transporter.sendMail({
+        await transporter.sendMail({
             from: process.env.GOOGLE_EMAIL,
             to,
             subject: subject,
