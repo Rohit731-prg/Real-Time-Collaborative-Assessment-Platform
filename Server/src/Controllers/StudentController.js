@@ -37,6 +37,7 @@ export const signup = async (req, res) => {
       email: newStudent.email,
     });
   } catch (error) {
+    console.log({ error });
     return res.status(500).json({ message: error.message });
   }
 };
@@ -61,6 +62,10 @@ export const login = async (req, res) => {
     const isPasswordValid = await comparePassword(password, student.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid password" });
+    }
+
+    if (!student.isActive) {
+      return res.status(403).json({ message: "Account is inactive." });
     }
 
     const token = createToken(student._id);

@@ -99,7 +99,7 @@ const useStudentStore = create<Store>()(
 
                     return true;
                 } catch (error) {
-                    console.log(error);
+                    console.log({ error });
                     return false;
                 }
             },
