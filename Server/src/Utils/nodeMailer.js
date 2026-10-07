@@ -44,6 +44,9 @@ export const sendEmail = async (to, otp) => {
         console.log("Email sent successfully");
 
     } catch (error) {
+        console.log("Error from node mailer: ", { error });
+        console.log("Error from node mailer: ", error);
+        console.log("Error from node mailer: ", error.message);
         throw new Error(error.message);
     }
 }
