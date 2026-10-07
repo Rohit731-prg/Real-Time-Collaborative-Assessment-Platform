@@ -111,7 +111,7 @@ export const optVerification = async (req, res) => {
       return res.status(401).json({ message: "Invalid otp" });
     }
 
-    student.isActive = true;
+    student.isVerified = true;
     student.otp = null;
     await student.save();
 
