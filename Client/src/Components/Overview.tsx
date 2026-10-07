@@ -32,14 +32,7 @@ function Overview() {
         if (!result || !exam || !questionId) return;
 
         let cancelled = false;
-        const chatContext: AiChatContext = {
-            questionId,
-            examId: exam._id,
-            courseId: exam.courseId,
-            roomId: exam.roomId,
-            answer: result.overview || "The student has completed this assessment.",
-        };
-        void getAllMessage(chatContext)
+        void getAllMessage(exam._id)
             .then(() => {
                 if (!cancelled) setError("");
             })

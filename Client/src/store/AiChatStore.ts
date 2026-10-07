@@ -8,11 +8,15 @@ export type AiChatMessage = {
     createdAt: string;
 };
 
-export type AiChatContext = {
+export type AiChatContextGet = {
     questionId: string;
     examId: string;
     courseId: string;
     roomId: string;
+};
+
+export type AiChatContext = AiChatContextGet & {
+    answer: string;
 };
 
 type ApiMessage = {
@@ -25,7 +29,7 @@ type ApiMessage = {
 
 type AiChatState = {
     messages: AiChatMessage[] | null;
-    getAllMessage: (context: AiChatContext) => Promise<void>;
+    getAllMessage: (examId: string) => Promise<void>;
     sendMessage: (context: AiChatContext, query: string) => Promise<void>;
 };
 
@@ -39,11 +43,13 @@ const toChatMessage = (message: ApiMessage): AiChatMessage => ({
 const useAiChatStore = create<AiChatState>((set) => ({
     messages: null,
 
-    getAllMessage: async (context) => {
+    getAllMessage: async (examId: string) => {
         set({ messages: null });
         try {
-            const { data } = await aiApi.post<{ aiChat: ApiMessage[] }>("/get", context);
-            set({ messages: data.aiChat.map(toChatMessage) });
+            const res = await aiApi.post("/get", {
+                examId
+            });
+            set({ messages: res.data.aiChat.map(toChatMessage) });
         } catch (error) {
             set({ messages: [] });
             throw error;

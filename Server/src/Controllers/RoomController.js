@@ -116,7 +116,6 @@ export const getRoomDetails = async (req, res) => {
 };
 
 export const getAllJoinedRooms = async (req, res) => {
-    console.log("api called...!");
     try {
         const userId = req.user._id;
 
@@ -195,7 +194,6 @@ export const getAllJoinedRooms = async (req, res) => {
             }
         ]);
 
-        console.log(rooms);
         return res.status(200).json({ rooms });
 
     } catch (error) {

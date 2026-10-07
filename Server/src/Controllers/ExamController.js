@@ -5,6 +5,7 @@ import { Room } from "../Models/RoomSchema.js";
 import { RoomMembership } from "../Models/RoomMembershipSchema.js";
 import { convertDocument } from "../Utils/Document.js";
 import { textSplitter } from "../Utils/textSplitter.js";
+import { formatAssessmentQuestions } from "../Utils/formatAssessmentQuestions.js";
 // import { embbiding } from "../Utils/embidding.js";
 // import { pineconeIndex } from "../Config/Pinecone.js";
 import { questionChain } from "../Utils/createQuestion.js";
@@ -16,7 +17,6 @@ import { AiChat } from "../Models/AiChatSchema.js";
 
 export const createExam = async (req, res) => {
     try {
-        console.log("Body:", req.body);
         const file = req.file;
         if (!file) return res.status(400).json({ message: "File is required" });
         const parser = new PDFParse({ data: file.buffer });
@@ -61,7 +61,6 @@ export const createExam = async (req, res) => {
             difficulty: "medium",
             question: "Generate the examination."
         });
-        console.log(aiResponse);
 
         const newQuestion = new Question({
             examId: exam._id,
@@ -78,7 +77,7 @@ export const createExam = async (req, res) => {
             examId: exam._id,
             courseId: courseId,
             roomId: room._id,
-            Message: String(aiResponse),
+            Message: formatAssessmentQuestions(aiResponse),
             role: "ai",
         })
         await newAiChat.save();
@@ -132,7 +131,6 @@ export const submitExam = async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        console.log("Answer from AI Response: ", answer);
         const question = await Question.findById(questionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
@@ -185,9 +183,6 @@ export const submitExam = async (req, res) => {
                 ? overviewContent.map((part) => typeof part === "string" ? part : part.text ?? "").join("\n")
                 : JSON.stringify(overviewContent) ?? "";
 
-        console.log("Evaluation from AI: ", aiResponse);
-        console.log("Overview from AI: ", aiOverView);
-
         return res.status(201).json({
             message: "Exam submitted successfully",
             question: newQuestion,
@@ -215,7 +210,23 @@ export const getAllExamInfo = async (req, res) => {
         const exams = await Exam.find({ roomId: room._id }).sort({ createdAt: -1 });
         if (!exams) return res.status(404).json({ message: "Exam not found" });
 
-        return res.status(200).json({ exam: exams });
+        const questions = await Question.find({
+            examId: { $in: exams.map((exam) => exam._id) },
+        }).sort({ createdAt: 1 });
+        const questionIdByExam = new Map();
+        for (const question of questions) {
+            const examId = question.examId.toString();
+            if (!questionIdByExam.has(examId)) {
+                questionIdByExam.set(examId, question._id);
+            }
+        }
+
+        const examDetails = exams.map((exam) => ({
+            ...exam.toObject(),
+            questionId: questionIdByExam.get(exam._id.toString()),
+        }));
+
+        return res.status(200).json({ exam: examDetails });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Internal Server Error" });

@@ -15,6 +15,7 @@ type ExamItem = {
     durationMinutes: number;
     totalMarks: number;
     questionId?: string;
+    answer?: string;
 };
 
 function PreAiChatRoom() {
@@ -23,7 +24,7 @@ function PreAiChatRoom() {
 
     const { getAllExams, exams } = useExamStore();
 
-    const { messages, getAllMessage, sendMessage } = useAiChatStore()
+    const { messages, getAllMessage, sendMessage } = useAiChatStore();
 
     const [selectedExam, setSelectedExam] = useState<ExamItem | null>(null);
     const [query, setQuery] = useState("");
@@ -35,15 +36,21 @@ function PreAiChatRoom() {
     // Get all exams of this room
     useEffect(() => {
         const loadExams = async () => {
-            if (!roomCode) return;
+            if (!roomCode) {
+                setIsLoading(false);
+                return;
+            }
 
             setIsLoading(true);
-            await getAllExams(roomCode);
-            setIsLoading(false);
+            try {
+                await getAllExams(roomCode);
+            } finally {
+                setIsLoading(false);
+            }
         };
 
         loadExams();
-    }, [roomCode]);
+    }, [getAllExams, roomCode]);
 
     // Load chat whenever an exam is selected
     useEffect(() => {
@@ -51,19 +58,14 @@ function PreAiChatRoom() {
 
         const loadChat = async () => {
             try {
-                await getAllMessage({
-                    questionId: selectedExam.questionId || selectedExam._id,
-                    examId: selectedExam._id,
-                    courseId: selectedExam.courseId,
-                    roomId: selectedExam.roomId,
-                });
+                await getAllMessage(selectedExam._id);
             } catch (error) {
-                console.error("Failed to load chat:", error);
+                console.error("Failed to load chat:", {error});
             }
         };
 
         loadChat();
-    }, [selectedExam]);
+    }, [getAllMessage, selectedExam]);
 
     // Scroll chat to bottom
     useEffect(() => {
@@ -91,6 +93,7 @@ function PreAiChatRoom() {
                     examId: selectedExam._id,
                     courseId: selectedExam.courseId,
                     roomId: selectedExam.roomId,
+                    answer: selectedExam.answer ?? "",
                 },
                 message
             );
