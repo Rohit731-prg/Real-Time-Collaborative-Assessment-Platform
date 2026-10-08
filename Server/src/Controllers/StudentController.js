@@ -1,7 +1,6 @@
 import { Student } from "../Models/StudentSchema.js";
 import { createToken } from "../Utils/jwt_token.js";
 import { createHashedPassword, comparePassword } from "../Utils/password.js";
-import { sendEmail } from "../Utils/resend.js";
 
 export const signup = async (req, res) => {
   const { name, email, password, university, department, semester } = req.body;
@@ -29,12 +28,11 @@ export const signup = async (req, res) => {
       otp: otp
     });
     // await sendEmail(email, otp);
-    await sendEmail(email, otp);
     await newStudent.save();
 
 
     return res.status(201).json({
-      message: "Student registered successfully please verify your email",
+      message: `Student registered successfully please verify your email ${otp}`,
       email: newStudent.email,
     });
   } catch (error) {
@@ -106,7 +104,7 @@ export const optVerification = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    if (student.otp !== otp) {
+    if (String(student.otp) !== String(otp)) {
       await Student.findByIdAndDelete(student._id);
       return res.status(401).json({ message: "Invalid otp" });
     }
@@ -142,15 +140,15 @@ export const forgotPasswordGetEmail = async (req, res) => {
 
     const otp = Math.floor(1000 + Math.random() * 9000);
     student.otp = otp;
+    // await sendEmail(email, otp);
     await student.save();
 
     const studentData = student.toObject();
     delete studentData.password;
 
-    await sendEmail(studentData.email, otp);
 
     return res.status(200).json({
-      message: "Otp sent successfully",
+      message: `Otp sent successfully ${otp}`,
       student: studentData,
     });
   } catch (error) {
