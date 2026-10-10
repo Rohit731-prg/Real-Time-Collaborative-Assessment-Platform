@@ -6,6 +6,7 @@ import RoomChat from "./Components/RoomChat";
 import ExamRoom from "./Components/ExamRoom";
 import ResetPassword from "./Components/Auth/ResetPassword";
 import PreAiChatRoom from "./Components/PreAiChatRoom";
+import ProtectedRoute from "./Components/Auth/ProtectedRoute";
 
 const App = () => {
   return (
@@ -13,13 +14,15 @@ const App = () => {
       <Routes>
         <Route path="/" element={<MainAuth />} />
         <Route path="/login" element={<MainAuth />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/course" element={<Course />} />
-        <Route path="/roomChat/:roomCode" element={<RoomChat />} />
-        <Route path="/examRoom/:roomCode" element={<ExamRoom />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/preAiChatRoom/:roomCode" element={<PreAiChatRoom />} />
-        <Route path="/preAiChatRoom" element={<PreAiChatRoom />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/course" element={<Course />} />
+          <Route path="/roomChat/:roomCode" element={<RoomChat />} />
+          <Route path="/examRoom/:roomCode" element={<ExamRoom />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/preAiChatRoom/:roomCode" element={<PreAiChatRoom />} />
+          <Route path="/preAiChatRoom" element={<PreAiChatRoom />} />
+        </Route>
       </Routes>
     </Router>
   )
