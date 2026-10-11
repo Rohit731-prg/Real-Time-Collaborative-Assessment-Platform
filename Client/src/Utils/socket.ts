@@ -1,6 +1,8 @@
 import { io } from "socket.io-client";
 
-export const socket = io("https://real-time-collaborative-assessment-znef.onrender.com", {
+const url = `${import.meta.env.VITE_API_BASE_URL}`
+
+export const socket = io(url, {
     autoConnect: false,
     withCredentials: true
 });

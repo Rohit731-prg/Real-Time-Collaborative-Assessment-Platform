@@ -17,6 +17,18 @@ import { AiChat } from "../Models/AiChatSchema.js";
 
 export const createExam = async (req, res) => {
     try {
+        const user = req.user;
+        const { courseId, roomCode, title, durationMinutes, totalMarks } = req.body;
+        if (!courseId || !roomCode || !title || !durationMinutes || !totalMarks) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+        const room = await Room.findOne({ roomCode: roomCode });
+        if (!room) {
+            return res.status(404).json({ message: "Room not found" });
+        }
+        const isMember = await RoomMembership.findOne({ userId: user._id, roomId: room._id });
+        if (!isMember) return res.status(403).json({ message: "You are not authorized to create exam" });
+
         const file = req.file;
         if (!file) return res.status(400).json({ message: "File is required" });
         const parser = new PDFParse({ data: file.buffer });
@@ -26,16 +38,6 @@ export const createExam = async (req, res) => {
         const pdfText = pdfData.text;
         if (!pdfText?.trim()) {
             return res.status(400).json({ message: "PDF contains no extractable text" });
-        }
-
-        const { courseId, roomCode, title, durationMinutes, totalMarks } = req.body;
-        if (!courseId || !roomCode || !title || !durationMinutes || !totalMarks) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        const room = await Room.findOne({ roomCode: roomCode });
-        if (!room) {
-            return res.status(404).json({ message: "Room not found" });
         }
 
         const exam = await Exam.create({
@@ -126,6 +128,7 @@ export const getActiveExamForRoom = async (req, res) => {
 
 export const submitExam = async (req, res) => {
     try {
+        const user = req.user;
         const { questionId, examId, roomCode, answer } = req.body;
         if (!examId || !questionId || !answer || !roomCode) {
             return res.status(400).json({ message: "All fields are required" });
@@ -141,6 +144,15 @@ export const submitExam = async (req, res) => {
 
         const exam = await Exam.findById(examId);
         if (!exam) return res.status(404).json({ message: "Exam not found" });
+
+        const isMember = await RoomMembership.exists({ roomId: room._id, userId: user._id });
+        if (!isMember) return res.status(403).json({ message: "You are not a member of this room" });
+
+        if (exam.roomId != room._id) return res.status(400).json({ message: "Room not match" });
+
+        if (question.attempted) {
+            return res.status(400).json({ message: "Question already attempted" });
+        }
 
         question.attempted = true;
         await question.save();

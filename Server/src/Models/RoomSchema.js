@@ -34,7 +34,7 @@ const roomSchema = new mongoose.Schema(
 		},
 		status: {
 			type: String,
-			enum: ["waiting", "exam", "completed", "closed"],
+			enum: ["waiting", "exam", "completed"],
 			default: "waiting",
 			index: true,
 		},
@@ -43,6 +43,10 @@ const roomSchema = new mongoose.Schema(
 			required: [true, "Maximum participants is required"],
 			min: [2, "Maximum participants must be at least 2"],
 			default: 50,
+		},
+		currentParticipants: {
+			type: Number,
+			default: 0,
 		},
 		currentExamId: {
 			type: mongoose.Schema.Types.ObjectId,

@@ -9,7 +9,11 @@ export const createRoom = async (req, res) => {
     }
     try {
         const user = req.user;
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        let code;
+        do {
+            code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        } while (await Room.findOne({ roomCode: code }));
+
         const newRoom = new Room({
             courseId,
             name,
