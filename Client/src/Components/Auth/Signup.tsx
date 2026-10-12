@@ -43,6 +43,7 @@ function Signup() {
             console.log(success);
             setShowOtp(true);
         }
+        setIsSubmitting(false);
     };
 
     if (showOtp) {

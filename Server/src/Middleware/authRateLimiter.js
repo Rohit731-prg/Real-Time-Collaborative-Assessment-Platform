@@ -1,8 +1,8 @@
 import rateLimit from "express-rate-limit";
 
 export const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 5,
+    windowMs: 3 * 60 * 1000,
+    limit: 8,
     standardHeaders: "draft-8",
     legacyHeaders: false,
     message: {
@@ -12,7 +12,7 @@ export const loginLimiter = rateLimit({
 });
 
 export const otpLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 5 * 60 * 1000,
     limit: 5,
     standardHeaders: "draft-8",
     legacyHeaders: false,
@@ -23,7 +23,7 @@ export const otpLimiter = rateLimit({
 });
 
 export const forgotPasswordLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 5 * 60 * 1000,
     limit: 3,
     standardHeaders: "draft-8",
     legacyHeaders: false,
@@ -34,7 +34,7 @@ export const forgotPasswordLimiter = rateLimit({
 });
 
 export const resetPasswordLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 5 * 60 * 1000,
     limit: 5,
     standardHeaders: "draft-8",
     legacyHeaders: false,

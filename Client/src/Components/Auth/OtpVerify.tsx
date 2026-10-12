@@ -15,12 +15,11 @@ function OtpVerify({ setShowOtp }: OtpVerifyProps) {
         event.preventDefault();
         setIsSubmitting(true);
         const res = await verifyOtp(otp.trim());
-        setIsSubmitting(false);
-
         if (res) {
             setOtp("");
             setShowOtp(false);
         }
+        setIsSubmitting(false);
     };
 
     return (

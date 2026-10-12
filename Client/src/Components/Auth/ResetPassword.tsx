@@ -31,6 +31,7 @@ function ResetPassword() {
         if (success) {
             setStep("verify");
         }
+        setIsSubmitting(false);
     };
 
     // Step 2: Verify OTP and reset password
@@ -54,12 +55,11 @@ function ResetPassword() {
 
         setIsSubmitting(true);
         const success = await resetPassword(email.trim().toLowerCase(), otp.trim(), password);
-        setIsSubmitting(false);
-
         if (success) {
             toast.success("Password reset successfully! Please log in.");
             navigate("/login");
         }
+        setIsSubmitting(false);
     };
 
     // Resend OTP helper

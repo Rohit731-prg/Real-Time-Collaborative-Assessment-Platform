@@ -18,6 +18,7 @@ const Login = () => {
         if (response) {
             navigate("/home")
         }
+        setIsSubmitting(false);
     }
 
     return (
