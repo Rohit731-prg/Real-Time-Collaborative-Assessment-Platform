@@ -148,7 +148,7 @@ export const submitExam = async (req, res) => {
         const isMember = await RoomMembership.exists({ roomId: room._id, userId: user._id });
         if (!isMember) return res.status(403).json({ message: "You are not a member of this room" });
 
-        if (exam.roomId != room._id) return res.status(400).json({ message: "Room not match" });
+        if (!exam.roomId.equals(room._id)) return res.status(400).json({ message: "Room not match" });
 
         if (question.attempted) {
             return res.status(400).json({ message: "Question already attempted" });
