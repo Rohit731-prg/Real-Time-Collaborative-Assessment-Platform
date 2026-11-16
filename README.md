@@ -20,7 +20,7 @@ The project has two applications:
 
 | Application | Technology | Purpose |
 | --- | --- | --- |
-| `Client/` | React, TypeScript, Vite | Web interface and real-time client |
+| `Client/` | React, TypeScript | Web interface and real-time client |
 | `Server/` | Node.js, Express, Socket.IO | REST API, authentication, and real-time events |
 | Database | MongoDB with Mongoose | Stores users, courses, rooms, exams, and messages |
 
